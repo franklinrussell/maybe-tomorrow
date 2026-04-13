@@ -1,0 +1,332 @@
+'use client'
+
+import { useEffect, useState, useCallback } from 'react'
+import { DragDropContext, DropResult } from '@hello-pangea/dnd'
+import { Task, TaskState, TaskList as TaskListType } from '@/types'
+import { DEV_USER, DEV_USER_ID } from '@/lib/dev-user'
+import { playWhoosh } from '@/lib/sounds'
+import { sortTasks } from '@/components/TaskList'
+import TaskList from '@/components/TaskList'
+import { v4 as uuidv4 } from 'uuid'
+
+// Seed data — used only when API returns empty
+const SEED_TASKS: Task[] = [
+  {
+    id: uuidv4(), userId: DEV_USER_ID, title: 'Ship the MVP by end of week',
+    state: 'in_progress', list: 'today', order: 0, blownUpCount: 2,
+    createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+  },
+  {
+    id: uuidv4(), userId: DEV_USER_ID, title: 'Reply to Slack messages',
+    state: 'not_started', list: 'today', order: 1, blownUpCount: 0,
+    createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+  },
+  {
+    id: uuidv4(), userId: DEV_USER_ID, title: 'Write tests for auth flow',
+    state: 'not_started', list: 'today', order: 2, blownUpCount: 4,
+    createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+  },
+  {
+    id: uuidv4(), userId: DEV_USER_ID, title: 'Update project README',
+    state: 'done', list: 'today', order: 3, blownUpCount: 0,
+    createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+    completedAt: new Date().toISOString(),
+  },
+  {
+    id: uuidv4(), userId: DEV_USER_ID, title: 'Redesign onboarding flow',
+    state: 'not_started', list: 'not_today', order: 0, blownUpCount: 6,
+    createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+  },
+  {
+    id: uuidv4(), userId: DEV_USER_ID, title: 'Migrate database to Postgres',
+    state: 'not_started', list: 'not_today', order: 1, blownUpCount: 1,
+    createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+  },
+]
+
+async function apiFetch(path: string, options?: RequestInit) {
+  return fetch(path, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      'x-user-id': DEV_USER_ID,
+      ...(options?.headers ?? {}),
+    },
+  })
+}
+
+function applyDragResult(tasks: Task[], result: DropResult): Task[] {
+  const { source, destination, draggableId } = result
+  if (!destination) return tasks
+  if (source.droppableId === destination.droppableId && source.index === destination.index) return tasks
+
+  const now = new Date().toISOString()
+  const srcId = source.droppableId as TaskListType
+  const dstId = destination.droppableId as TaskListType
+
+  // Use same sort as TaskList so indices match visual order
+  let srcArr = sortTasks(tasks.filter((t) => t.list === srcId))
+  let dstArr = srcId === dstId ? srcArr : sortTasks(tasks.filter((t) => t.list === dstId))
+
+  // Remove from source
+  const moved = srcArr[source.index]
+  srcArr = [...srcArr.slice(0, source.index), ...srcArr.slice(source.index + 1)]
+  if (srcId === dstId) dstArr = srcArr
+
+  // Insert into destination
+  const movedWithNewList = { ...moved, list: dstId }
+  dstArr = [
+    ...dstArr.slice(0, destination.index),
+    movedWithNewList,
+    ...dstArr.slice(destination.index),
+  ]
+  if (srcId === dstId) srcArr = dstArr
+
+  // Assign new order values
+  const srcFinal = srcArr.map((t, i) => ({ ...t, order: i, updatedAt: now }))
+  const dstFinal = srcId === dstId ? srcFinal : dstArr.map((t, i) => ({ ...t, order: i, updatedAt: now }))
+
+  // Merge updates back
+  const updates = new Map<string, Task>([
+    ...srcFinal.map((t): [string, Task] => [t.id, t]),
+    ...dstFinal.map((t): [string, Task] => [t.id, t]),
+  ])
+
+  return tasks.map((t) => updates.get(t.id) ?? t)
+}
+
+export default function AppPage() {
+  const [tasks, setTasks] = useState<Task[]>(SEED_TASKS)
+  const [apiReady, setApiReady] = useState(false)
+  const [blowingUpIds, setBlowingUpIds] = useState<Set<string>>(new Set())
+  const [notTodayFlashKey, setNotTodayFlashKey] = useState(0)
+
+  useEffect(() => {
+    apiFetch('/api/tasks')
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data.tasks) && data.tasks.length > 0) setTasks(data.tasks)
+        setApiReady(true)
+      })
+      .catch(() => setApiReady(true))
+  }, [])
+
+  const todayTasks = tasks.filter((t) => t.list === 'today')
+  const notTodayTasks = tasks.filter((t) => t.list === 'not_today')
+
+  const handleAdd = useCallback(async (list: TaskListType, title: string) => {
+    const now = new Date().toISOString()
+    const optimistic: Task = {
+      id: uuidv4(), userId: DEV_USER_ID, title,
+      state: 'not_started', list,
+      order: tasks.filter((t) => t.list === list).length,
+      blownUpCount: 0, createdAt: now, updatedAt: now,
+    }
+    setTasks((prev) => [...prev, optimistic])
+    try {
+      const res = await apiFetch('/api/tasks', {
+        method: 'POST',
+        body: JSON.stringify({ title, list }),
+      })
+      const data = await res.json()
+      setTasks((prev) => prev.map((t) => (t.id === optimistic.id ? data.task : t)))
+    } catch { /* keep optimistic */ }
+  }, [tasks])
+
+  const handleStateChange = useCallback(async (id: string, state: TaskState) => {
+    setTasks((prev) =>
+      prev.map((t) => t.id === id ? { ...t, state, updatedAt: new Date().toISOString() } : t)
+    )
+    try {
+      await apiFetch(`/api/tasks/${id}`, { method: 'PATCH', body: JSON.stringify({ state }) })
+    } catch { /* optimistic only */ }
+  }, [])
+
+  const handleMove = useCallback(async (id: string) => {
+    const task = tasks.find((t) => t.id === id)
+    if (!task) return
+    const newList: TaskListType = task.list === 'today' ? 'not_today' : 'today'
+    setTasks((prev) => {
+      const movingToNotToday = newList === 'not_today'
+      const minOrder = movingToNotToday
+        ? Math.min(0, ...prev.filter(t => t.list === 'not_today' && t.id !== id).map(t => t.order))
+        : 0
+      return prev.map((t) => {
+        if (t.id !== id) return t
+        return {
+          ...t,
+          list: newList,
+          order: movingToNotToday ? minOrder - 1 : t.order,
+          updatedAt: new Date().toISOString(),
+        }
+      })
+    })
+    try {
+      const res = await apiFetch(`/api/tasks/${id}`, { method: 'PATCH', body: JSON.stringify({ list: newList }) })
+      const data = await res.json()
+if (data.task) setTasks((prev) => prev.map((t) => t.id === id ? data.task : t))
+    } catch { /* optimistic only */ }
+  }, [tasks])
+
+  const handleDelete = useCallback(async (id: string) => {
+    setTasks((prev) => prev.filter((t) => t.id !== id))
+    try {
+      await apiFetch(`/api/tasks/${id}`, { method: 'DELETE' })
+    } catch { /* optimistic only */ }
+  }, [])
+
+  const handleBlowUp = useCallback(async () => {
+    const toBlowUp = sortTasks(
+      tasks.filter((t) => t.list === 'today' && t.state !== 'done')
+    )
+    if (toBlowUp.length === 0) return
+
+    // 1. Sound fires immediately
+    playWhoosh()
+
+    // 2. Mark cards as blowing up — their animations start
+    const ids = new Set(toBlowUp.map((t) => t.id))
+    setBlowingUpIds(ids)
+
+    // 3. Wait for all animations: (n-1)*80ms stagger + 280ms shake + 340ms fly + 50ms buffer
+    const totalMs = (toBlowUp.length - 1) * 80 + 280 + 340 + 50
+    await new Promise((r) => setTimeout(r, totalMs))
+
+    // 4. Apply state update (cards have already visually departed)
+    setBlowingUpIds(new Set())
+    const now = new Date().toISOString()
+    setTasks((prev) => {
+      const toMove = prev.filter((t) => ids.has(t.id))
+      const rest = prev.filter((t) => !ids.has(t.id))
+      const existingNotToday = rest
+        .filter((t) => t.list === 'not_today')
+        .map((t) => ({ ...t, order: t.order + toMove.length }))
+      const moved = toMove.map((t, i) => ({
+        ...t, list: 'not_today' as const, order: i,
+        blownUpCount: t.blownUpCount + 1, updatedAt: now,
+      }))
+      return [...rest.filter((t) => t.list !== 'not_today'), ...moved, ...existingNotToday]
+    })
+
+    // 5. Flash the Not Today column as tasks land
+    setNotTodayFlashKey((k) => k + 1)
+
+    // 6. Persist to API
+    try {
+      const res = await apiFetch('/api/tasks/blowup', { method: 'POST' })
+      const data = await res.json()
+      if (Array.isArray(data.tasks)) setTasks(data.tasks)
+    } catch { /* keep optimistic */ }
+  }, [tasks])
+
+  const handleDragEnd = useCallback((result: DropResult) => {
+    const { source, destination, draggableId } = result
+    if (!destination) return
+    if (source.droppableId === destination.droppableId && source.index === destination.index) return
+
+    setTasks((prev) => applyDragResult(prev, result))
+
+    // Persist list change for cross-column drags
+    if (source.droppableId !== destination.droppableId) {
+      apiFetch(`/api/tasks/${draggableId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ list: destination.droppableId }),
+      }).catch(() => {})
+    }
+  }, [])
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* Top bar */}
+      <header
+        className="flex items-center justify-between px-8 py-4 bg-white shrink-0"
+        style={{ borderBottom: '1px solid #F0F0EE' }}
+      >
+        {/* Logo: yellow left-border accent + title stack */}
+        <div style={{ borderLeft: '4px solid #FFE500', paddingLeft: '14px' }}>
+          <h1
+            className="leading-none"
+            style={{
+              fontFamily: 'var(--font-bebas, sans-serif)',
+              fontSize: '2.2rem',
+              letterSpacing: '0.04em',
+              color: '#111',
+            }}
+          >
+            NOT TODAY
+          </h1>
+          <p
+            className="hidden sm:block"
+            style={{
+              fontFamily: 'var(--font-jakarta, sans-serif)',
+              fontSize: '0.7rem',
+              color: '#9CA3AF',
+              marginTop: '1px',
+            }}
+          >
+            task manager
+          </p>
+        </div>
+
+        {/* Right: user + dev badge */}
+        <div
+          className="flex items-center gap-2"
+          style={{ fontFamily: 'var(--font-jakarta, sans-serif)', fontSize: '0.75rem', color: '#9CA3AF' }}
+        >
+          <span
+            className="w-1.5 h-1.5 rounded-full inline-block"
+            style={{ backgroundColor: apiReady ? '#22c55e' : '#f59e0b' }}
+          />
+          <span>{DEV_USER.name}</span>
+          <span
+            className="rounded px-1.5 py-0.5"
+            style={{
+              fontSize: '0.65rem',
+              fontWeight: 600,
+              letterSpacing: '0.06em',
+              textTransform: 'uppercase',
+              backgroundColor: '#F3F4F6',
+              color: '#9CA3AF',
+            }}
+          >
+            dev
+          </span>
+        </div>
+      </header>
+
+      {/* Two-column board */}
+      <DragDropContext onDragEnd={handleDragEnd}>
+        <div className="flex flex-1 overflow-hidden">
+          {/* TODAY column */}
+          <div
+            className="flex-1 flex flex-col overflow-hidden"
+            style={{ borderRight: '1px solid #E5E7EB' }}
+          >
+            <TaskList
+              list="today"
+              tasks={todayTasks}
+              onAdd={(title) => handleAdd('today', title)}
+              onStateChange={handleStateChange}
+              onMove={handleMove}
+              onDelete={handleDelete}
+              onBlowUp={handleBlowUp}
+              blowingUpIds={blowingUpIds}
+            />
+          </div>
+          {/* NOT TODAY column */}
+          <div className="flex-1 flex flex-col overflow-hidden">
+            <TaskList
+              list="not_today"
+              tasks={notTodayTasks}
+              onAdd={(title) => handleAdd('not_today', title)}
+              onStateChange={handleStateChange}
+              onMove={handleMove}
+              onDelete={handleDelete}
+              flashKey={notTodayFlashKey}
+            />
+          </div>
+        </div>
+      </DragDropContext>
+    </div>
+  )
+}
