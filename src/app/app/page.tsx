@@ -119,10 +119,13 @@ export default function AppPage() {
     const optimistic: Task = {
       id: uuidv4(), userId: DEV_USER_ID, title,
       state: 'not_started', list,
-      order: tasks.filter((t) => t.list === list).length,
+      order: 0,
       blownUpCount: 0, createdAt: now, updatedAt: now,
     }
-    setTasks((prev) => [...prev, optimistic])
+    setTasks((prev) => {
+      const minOrder = Math.min(0, ...prev.filter(t => t.list === list).map(t => t.order))
+      return [...prev, { ...optimistic, order: minOrder - 1 }]
+    })
     try {
       const res = await apiFetch('/api/tasks', {
         method: 'POST',
@@ -236,7 +239,7 @@ if (data.task) setTasks((prev) => prev.map((t) => t.id === id ? data.task : t))
   }, [])
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-screen">
       {/* Top bar */}
       <header
         className="flex items-center justify-between px-8 py-4 bg-white shrink-0"

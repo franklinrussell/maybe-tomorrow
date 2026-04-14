@@ -1,4 +1,4 @@
-import type { UsersDoc, TasksDoc, SessionsDoc } from '@/types'
+import type { UsersDoc, TasksDoc, SessionsDoc, AuthMetaDoc } from '@/types'
 
 const BASE_URL = 'https://onejsonfile.com/api/v1/files'
 
@@ -49,6 +49,12 @@ function sessionsToken() {
   return t
 }
 
+function authMetaToken() {
+  const t = process.env.ONEJSONFILE_AUTH_TOKEN
+  if (!t) throw new Error('ONEJSONFILE_AUTH_TOKEN not set')
+  return t
+}
+
 export async function readUsers(): Promise<UsersDoc> {
   return read<UsersDoc>(usersToken())
 }
@@ -83,4 +89,22 @@ export async function writeSessions(data: SessionsDoc): Promise<void> {
 
 export async function updateSessions(mutate: (d: SessionsDoc) => SessionsDoc | Promise<SessionsDoc>): Promise<SessionsDoc> {
   return update(sessionsToken(), mutate)
+}
+
+export async function readAuthMeta(): Promise<AuthMetaDoc> {
+  const raw = await read<Partial<AuthMetaDoc>>(authMetaToken())
+  return {
+    accounts: raw.accounts ?? {},
+    verificationTokens: raw.verificationTokens ?? {},
+  }
+}
+
+export async function updateAuthMeta(mutate: (d: AuthMetaDoc) => AuthMetaDoc | Promise<AuthMetaDoc>): Promise<AuthMetaDoc> {
+  return update<AuthMetaDoc>(authMetaToken(), async (raw) => {
+    const doc: AuthMetaDoc = {
+      accounts: (raw as Partial<AuthMetaDoc>).accounts ?? {},
+      verificationTokens: (raw as Partial<AuthMetaDoc>).verificationTokens ?? {},
+    }
+    return mutate(doc)
+  })
 }

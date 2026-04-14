@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Class-based dark mode for Tailwind v4 */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme inline {
   --font-bebas: var(--font-bebas);
   --font-sans: var(--font-jakarta);
@@ -8,7 +11,6 @@
   --color-coral: #FF3B30;
 }
 
-html, body { height: 100%; }
 * { box-sizing: border-box; }
 
 ::-webkit-scrollbar { width: 5px; }

@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { motion, useAnimation } from 'framer-motion'
 import { ArrowLeft, X } from 'lucide-react'
 import { Task, TaskState } from '@/types'
 import StateToggle from './StateToggle'
@@ -12,7 +11,6 @@ interface Props {
   onMove: (id: string) => void
   onDelete: (id: string) => void
   isBlowingUp?: boolean
-  blowUpDelay?: number
 }
 
 function blowDashes(count: number): string {
@@ -26,12 +24,10 @@ export default function TaskCard({
   onMove,
   onDelete,
   isBlowingUp = false,
-  blowUpDelay = 0,
 }: Props) {
   const isDone = task.state === 'done'
   const isNotToday = task.list === 'not_today'
   const dashes = blowDashes(task.blownUpCount)
-  const controls = useAnimation()
 
   // Two-stage delete
   const [isConfirming, setIsConfirming] = useState(false)
@@ -101,30 +97,8 @@ export default function TaskCard({
     }
   }, [])
 
-  // Blow-up animation
-  useEffect(() => {
-    if (!isBlowingUp) return
-    let cancelled = false
-    const timer = setTimeout(async () => {
-      if (cancelled) return
-      await controls.start({
-        x: [0, -11, 11, -9, 9, -6, 6, -3, 3, 0],
-        transition: { duration: 0.28, ease: 'easeInOut' },
-      })
-      if (cancelled) return
-      await controls.start({
-        x: '130vw',
-        scale: 0.35,
-        opacity: 0,
-        transition: { duration: 0.34, ease: [0.55, 0, 1, 0.45] },
-      })
-    }, blowUpDelay)
-    return () => { cancelled = true; clearTimeout(timer) }
-  }, [isBlowingUp, blowUpDelay, controls])
-
   return (
-    <motion.div
-      animate={controls}
+    <div
       onClick={handleCardClick}
       className={`
         relative group rounded-xl border border-[#E5E5E5]
@@ -245,6 +219,6 @@ export default function TaskCard({
           </>)}
         </div>
       </div>
-    </motion.div>
+    </div>
   )
 }

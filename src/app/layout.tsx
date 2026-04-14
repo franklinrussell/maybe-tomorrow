@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Bebas_Neue, Plus_Jakarta_Sans } from 'next/font/google'
+import { Providers } from '@/components/Providers'
 import './globals.css'
 
 const bebasNeue = Bebas_Neue({
@@ -17,18 +18,22 @@ const plusJakarta = Plus_Jakarta_Sans({
 })
 
 export const metadata: Metadata = {
-  title: 'Not Today',
-  description: 'The brutally honest task manager',
+  title: 'No, Not Today',
+  description: 'Maybe tomorrow.',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${bebasNeue.variable} ${plusJakarta.variable} h-full`}>
+    <html lang="en" className={`${bebasNeue.variable} ${plusJakarta.variable}`} suppressHydrationWarning>
+      <head>
+        {/* Apply saved theme before first paint to prevent flash */}
+        <script dangerouslySetInnerHTML={{ __html: `try{const t=localStorage.getItem('theme')||( window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');document.documentElement.classList.toggle('dark',t==='dark')}catch{}` }} />
+      </head>
       <body
-        className="h-full antialiased"
-        style={{ backgroundColor: '#FAFAF7', fontFamily: 'var(--font-jakarta, sans-serif)' }}
+        className="antialiased bg-white dark:bg-gray-950"
+        style={{ fontFamily: 'var(--font-jakarta, sans-serif)' }}
       >
-        {children}
+        <Providers>{children}</Providers>
       </body>
     </html>
   )

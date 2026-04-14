@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Droppable, Draggable } from '@hello-pangea/dnd'
 import { motion, useAnimation } from 'framer-motion'
 import { Task, TaskState, TaskList as TaskListType } from '@/types'
@@ -28,6 +28,80 @@ export function sortTasks(tasks: Task[]): Task[] {
   })
 }
 
+// Owns motion.div + blow-up animation outside the Draggable so
+// dragHandleProps lands on a plain DOM element, not a motion element.
+function AnimatedDraggable({
+  task,
+  index,
+  isBlowingUp,
+  blowUpDelay,
+  onStateChange,
+  onMove,
+  onDelete,
+}: {
+  task: Task
+  index: number
+  isBlowingUp: boolean
+  blowUpDelay: number
+  onStateChange: (id: string, state: TaskState) => void
+  onMove: (id: string) => void
+  onDelete: (id: string) => void
+}) {
+  const controls = useAnimation()
+
+  useEffect(() => {
+    if (!isBlowingUp) return
+    let cancelled = false
+    const timer = setTimeout(async () => {
+      if (cancelled) return
+      await controls.start({
+        x: [0, -11, 11, -9, 9, -6, 6, -3, 3, 0],
+        transition: { duration: 0.28, ease: 'easeInOut' },
+      })
+      if (cancelled) return
+      await controls.start({
+        x: '130vw',
+        scale: 0.35,
+        opacity: 0,
+        transition: { duration: 0.34, ease: [0.55, 0, 1, 0.45] },
+      })
+    }, blowUpDelay)
+    return () => { cancelled = true; clearTimeout(timer) }
+  }, [isBlowingUp, blowUpDelay, controls])
+
+  return (
+    <motion.div animate={controls}>
+      <Draggable draggableId={task.id} index={index} isDragDisabled={isBlowingUp}>
+        {(provided, snapshot) => (
+          <div
+            ref={provided.innerRef}
+            {...provided.draggableProps}
+            {...provided.dragHandleProps}
+            style={{
+              ...provided.draggableProps.style,
+              cursor: snapshot.isDragging ? 'grabbing' : 'grab',
+              filter: snapshot.isDragging
+                ? 'drop-shadow(0 8px 20px rgba(0,0,0,0.12))'
+                : undefined,
+              transform: snapshot.isDragging
+                ? `${provided.draggableProps.style?.transform ?? ''} rotate(1.5deg)`
+                : provided.draggableProps.style?.transform,
+            }}
+          >
+            <TaskCard
+              task={task}
+              onStateChange={onStateChange}
+              onMove={onMove}
+              onDelete={onDelete}
+              isBlowingUp={isBlowingUp}
+            />
+          </div>
+        )}
+      </Draggable>
+    </motion.div>
+  )
+}
+
 export default function TaskList({
   list,
   tasks,
@@ -43,6 +117,10 @@ export default function TaskList({
   const nonDoneCount = tasks.filter((t) => t.state !== 'done').length
   const isToday = list === 'today'
   const headerControls = useAnimation()
+
+  // Prevent hydration mismatch — only render DragDropContext after mount
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => { setMounted(true) }, [])
 
   useEffect(() => {
     if (flashKey === 0 || isToday) return
@@ -91,7 +169,6 @@ export default function TaskList({
           >
             {isToday ? 'TODAY' : 'NOT TODAY'}
           </h2>
-          {/* Accent underline */}
           <div
             className="mt-1.5 rounded-full"
             style={{
@@ -103,10 +180,7 @@ export default function TaskList({
         </div>
         <p
           className="mt-2 text-xs"
-          style={{
-            fontFamily: 'var(--font-jakarta, sans-serif)',
-            color: '#B0B7C3',
-          }}
+          style={{ fontFamily: 'var(--font-jakarta, sans-serif)', color: '#B0B7C3' }}
         >
           {isToday ? 'now' : 'later (or never)'}
         </p>
@@ -125,49 +199,23 @@ export default function TaskList({
             {sorted.length === 0 && (
               <p
                 className="text-sm py-10 text-center"
-                style={{
-                  fontFamily: 'var(--font-jakarta, sans-serif)',
-                  color: '#C4C9D4',
-                }}
+                style={{ fontFamily: 'var(--font-jakarta, sans-serif)', color: '#C4C9D4' }}
               >
                 {isToday ? 'nothing here yet' : 'clean slate'}
               </p>
             )}
 
-            {sorted.map((task, index) => (
-              <Draggable
+            {mounted && sorted.map((task, index) => (
+              <AnimatedDraggable
                 key={task.id}
-                draggableId={task.id}
+                task={task}
                 index={index}
-                isDragDisabled={blowingUpIds?.has(task.id) ?? false}
-              >
-                {(provided, snapshot) => (
-                  <div
-                    ref={provided.innerRef}
-                    {...provided.draggableProps}
-                    {...provided.dragHandleProps}
-                    style={{
-                      ...provided.draggableProps.style,
-                      cursor: snapshot.isDragging ? 'grabbing' : 'grab',
-                      filter: snapshot.isDragging
-                        ? 'drop-shadow(0 8px 20px rgba(0,0,0,0.12))'
-                        : undefined,
-                      transform: snapshot.isDragging
-                        ? `${provided.draggableProps.style?.transform ?? ''} rotate(1.5deg)`
-                        : provided.draggableProps.style?.transform,
-                    }}
-                  >
-                    <TaskCard
-                      task={task}
-                      onStateChange={onStateChange}
-                      onMove={onMove}
-                      onDelete={onDelete}
-                      isBlowingUp={blowingUpIds?.has(task.id) ?? false}
-                      blowUpDelay={blowUpDelayMap.get(task.id) ?? 0}
-                    />
-                  </div>
-                )}
-              </Draggable>
+                isBlowingUp={blowingUpIds?.has(task.id) ?? false}
+                blowUpDelay={blowUpDelayMap.get(task.id) ?? 0}
+                onStateChange={onStateChange}
+                onMove={onMove}
+                onDelete={onDelete}
+              />
             ))}
 
             {provided.placeholder}

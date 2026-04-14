@@ -1,21 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { readTasks, updateTasks } from '@/lib/onejsonfile'
+import { getUserId } from '@/lib/get-user-id'
 import { Task } from '@/types'
 import { v4 as uuidv4 } from 'uuid'
 
-// GET /api/tasks — fetch all tasks for the authenticated user
-export async function GET(req: NextRequest) {
-  // TODO: get userId from session
-  const userId = req.headers.get('x-user-id') ?? ''
+export async function GET() {
+  const userId = await getUserId()
+  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const doc = await readTasks()
   const tasks = doc[userId] ?? []
   return NextResponse.json({ tasks })
 }
 
-// POST /api/tasks — create a new task
 export async function POST(req: NextRequest) {
-  // TODO: get userId from session
-  const userId = req.headers.get('x-user-id') ?? ''
+  const userId = await getUserId()
+  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const body = await req.json()
 
   const doc = await readTasks()
@@ -29,7 +28,7 @@ export async function POST(req: NextRequest) {
     notes: body.notes,
     state: 'not_started',
     list: body.list ?? 'today',
-    order: userTasks.filter((t) => t.list === (body.list ?? 'today')).length,
+    order: Math.min(0, ...userTasks.filter((t) => t.list === (body.list ?? 'today')).map(t => t.order)) - 1,
     blownUpCount: 0,
     createdAt: now,
     updatedAt: now,

@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { updateTasks } from '@/lib/onejsonfile'
+import { getUserId } from '@/lib/get-user-id'
 
-// PATCH /api/tasks/[id] — update a task (title, notes, state, list, order)
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  // TODO: get userId from session
-  const userId = req.headers.get('x-user-id') ?? ''
+  const userId = await getUserId()
+  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const { id } = await params
   const body = await req.json()
 
@@ -37,10 +37,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   return NextResponse.json({ task: updated })
 }
 
-// DELETE /api/tasks/[id] — delete a task
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  // TODO: get userId from session
-  const userId = req.headers.get('x-user-id') ?? ''
+  const userId = await getUserId()
+  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const { id } = await params
 
   await updateTasks((d) => ({

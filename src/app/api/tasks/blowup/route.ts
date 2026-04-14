@@ -1,12 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { updateTasks } from '@/lib/onejsonfile'
+import { getUserId } from '@/lib/get-user-id'
 import { Task } from '@/types'
 
-// POST /api/tasks/blowup
-// Moves all non-done Today tasks to the top of Not Today, increments blownUpCount
-export async function POST(req: NextRequest) {
-  // TODO: get userId from session
-  const userId = req.headers.get('x-user-id') ?? ''
+export async function POST() {
+  const userId = await getUserId()
+  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const doc = await updateTasks((d) => {
     const tasks = d[userId] ?? []
@@ -15,7 +14,6 @@ export async function POST(req: NextRequest) {
     const toMove = tasks.filter((t) => t.list === 'today' && t.state !== 'done')
     const notMoving = tasks.filter((t) => !(t.list === 'today' && t.state !== 'done'))
 
-    // Existing not_today tasks get pushed down by the number of tasks moving in
     const existingNotToday = notMoving
       .filter((t) => t.list === 'not_today')
       .map((t) => ({ ...t, order: t.order + toMove.length }))
