@@ -2,8 +2,9 @@
 
 import { useState } from 'react'
 import { signIn } from 'next-auth/react'
-import Link from 'next/link'
-import { ThemeToggle } from '@/components/ThemeToggle'
+import Logo from '@/components/Logo'
+import { Header } from '@/components/Header'
+import { Footer } from '@/components/Footer'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -25,45 +26,37 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex flex-col bg-white dark:bg-gray-950">
 
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-white dark:bg-gray-950 border-b border-gray-100 dark:border-gray-800">
-        <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-md flex items-center justify-center" style={{ backgroundColor: '#111' }}>
-              <span style={{ color: '#FFE500', fontSize: '0.7rem', fontWeight: 900, fontFamily: 'Arial Black, sans-serif' }}>N!</span>
-            </div>
-            <span className="text-gray-900 dark:text-gray-100 font-semibold text-sm">No, Not Today</span>
-          </Link>
-          <ThemeToggle />
-        </div>
-      </header>
+      <Header />
 
       <div className="flex-1 flex items-center justify-center px-4 py-16">
       <div className="w-full max-w-sm">
 
         {/* Logo */}
-        <div className="mb-8 text-center">
-          <h1
-            className="text-gray-900 dark:text-gray-100"
-            style={{
-              fontFamily: 'var(--font-bebas, sans-serif)',
-              fontSize: '2.4rem',
-              letterSpacing: '0.04em',
-              lineHeight: 1,
-            }}
-          >
-            NO, NOT TODAY
-          </h1>
-          <p
-            style={{
-              fontFamily: 'var(--font-jakarta, sans-serif)',
-              fontSize: '0.85rem',
-              color: '#9CA3AF',
-              marginTop: '4px',
-            }}
-          >
-            Maybe tomorrow.
-          </p>
+        <div className="mb-8 flex flex-col items-center gap-3">
+          <Logo size={120} />
+          <div className="text-center">
+            <p
+              style={{
+                fontFamily: 'var(--font-jakarta, sans-serif)',
+                fontSize: '1rem',
+                fontWeight: 600,
+                color: 'inherit',
+              }}
+              className="text-gray-900 dark:text-gray-100"
+            >
+              Maybe Tomorrow
+            </p>
+            <p
+              style={{
+                fontFamily: 'var(--font-jakarta, sans-serif)',
+                fontSize: '0.8rem',
+                color: '#9CA3AF',
+                marginTop: '2px',
+              }}
+            >
+              Maybe.
+            </p>
+          </div>
         </div>
 
         {/* Card */}
@@ -73,7 +66,12 @@ export default function LoginPage() {
         >
           {sent ? (
             <div className="text-center py-4">
-              <div className="text-3xl mb-3">📬</div>
+              <div className="mb-4 flex justify-center">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="2" y="6" width="20" height="14" rx="2" stroke="#111" strokeWidth="1.5"/>
+                  <path d="M2 8 L12 14 L22 8" stroke="#111" strokeWidth="1.5" strokeLinecap="round"/>
+                </svg>
+              </div>
               <p
                 style={{
                   fontFamily: 'var(--font-jakarta, sans-serif)',
@@ -82,17 +80,7 @@ export default function LoginPage() {
                   color: '#111',
                 }}
               >
-                Check your inbox
-              </p>
-              <p
-                style={{
-                  fontFamily: 'var(--font-jakarta, sans-serif)',
-                  fontSize: '0.8rem',
-                  color: '#9CA3AF',
-                  marginTop: '4px',
-                }}
-              >
-                Magic link sent to {email}
+                Sign in link sent to {email}
               </p>
               <button
                 onClick={() => setSent(false)}
@@ -149,7 +137,7 @@ export default function LoginPage() {
                     color: '#111',
                   }}
                 >
-                  {loading ? 'Sending…' : 'Send magic link ✉️'}
+                  {loading ? 'Sending…' : 'Sign in'}
                 </button>
               </form>
             </>
@@ -158,6 +146,8 @@ export default function LoginPage() {
 
       </div>
       </div>
+
+      <Footer />
     </div>
   )
 }

@@ -4,10 +4,11 @@ import { useEffect, useState, useCallback } from 'react'
 import { DragDropContext, DropResult } from '@hello-pangea/dnd'
 import { Task, TaskState, TaskList as TaskListType } from '@/types'
 import { DEV_USER, DEV_USER_ID } from '@/lib/dev-user'
-import { playWhoosh } from '@/lib/sounds'
 import { sortTasks } from '@/components/TaskList'
 import TaskList from '@/components/TaskList'
 import { v4 as uuidv4 } from 'uuid'
+import { Header } from '@/components/Header'
+import { Footer } from '@/components/Footer'
 
 // Seed data — used only when API returns empty
 const SEED_TASKS: Task[] = [
@@ -148,6 +149,27 @@ export default function AppPage() {
   const handleMove = useCallback(async (id: string) => {
     const task = tasks.find((t) => t.id === id)
     if (!task) return
+
+    // Pinned Not Today task: copy to Today, leave original in place
+    if (task.list === 'not_today' && task.pinned) {
+      const now = new Date().toISOString()
+      const copy: Task = {
+        id: uuidv4(), userId: DEV_USER_ID, title: task.title,
+        notes: task.notes, state: 'not_started', list: 'today',
+        order: 0, blownUpCount: 0, createdAt: now, updatedAt: now,
+      }
+      setTasks((prev) => {
+        const minOrder = Math.min(0, ...prev.filter(t => t.list === 'today').map(t => t.order))
+        return [...prev, { ...copy, order: minOrder - 1 }]
+      })
+      try {
+        const res = await apiFetch('/api/tasks', { method: 'POST', body: JSON.stringify({ title: copy.title, notes: copy.notes, list: 'today' }) })
+        const data = await res.json()
+        if (data.task) setTasks((prev) => prev.map((t) => t.id === copy.id ? data.task : t))
+      } catch { /* keep optimistic */ }
+      return
+    }
+
     const newList: TaskListType = task.list === 'today' ? 'not_today' : 'today'
     setTasks((prev) => {
       const movingToNotToday = newList === 'not_today'
@@ -167,7 +189,7 @@ export default function AppPage() {
     try {
       const res = await apiFetch(`/api/tasks/${id}`, { method: 'PATCH', body: JSON.stringify({ list: newList }) })
       const data = await res.json()
-if (data.task) setTasks((prev) => prev.map((t) => t.id === id ? data.task : t))
+      if (data.task) setTasks((prev) => prev.map((t) => t.id === id ? data.task : t))
     } catch { /* optimistic only */ }
   }, [tasks])
 
@@ -178,16 +200,27 @@ if (data.task) setTasks((prev) => prev.map((t) => t.id === id ? data.task : t))
     } catch { /* optimistic only */ }
   }, [])
 
+  const handleEdit = useCallback(async (id: string, title: string, notes: string) => {
+    setTasks((prev) => prev.map((t) => t.id === id ? { ...t, title, notes: notes || undefined, updatedAt: new Date().toISOString() } : t))
+    try {
+      await apiFetch(`/api/tasks/${id}`, { method: 'PATCH', body: JSON.stringify({ title, notes: notes || undefined }) })
+    } catch { /* optimistic only */ }
+  }, [])
+
+  const handlePin = useCallback(async (id: string, pinned: boolean) => {
+    setTasks((prev) => prev.map((t) => t.id === id ? { ...t, pinned, updatedAt: new Date().toISOString() } : t))
+    try {
+      await apiFetch(`/api/tasks/${id}`, { method: 'PATCH', body: JSON.stringify({ pinned }) })
+    } catch { /* optimistic only */ }
+  }, [])
+
   const handleBlowUp = useCallback(async () => {
     const toBlowUp = sortTasks(
       tasks.filter((t) => t.list === 'today' && t.state !== 'done')
     )
     if (toBlowUp.length === 0) return
 
-    // 1. Sound fires immediately
-    playWhoosh()
-
-    // 2. Mark cards as blowing up — their animations start
+    // 1. Mark cards as blowing up — their animations start
     const ids = new Set(toBlowUp.map((t) => t.id))
     setBlowingUpIds(ids)
 
@@ -239,71 +272,15 @@ if (data.task) setTasks((prev) => prev.map((t) => t.id === id ? data.task : t))
   }, [])
 
   return (
-    <div className="flex flex-col h-screen">
-      {/* Top bar */}
-      <header
-        className="flex items-center justify-between px-8 py-4 bg-white shrink-0"
-        style={{ borderBottom: '1px solid #F0F0EE' }}
-      >
-        {/* Logo: yellow left-border accent + title stack */}
-        <div style={{ borderLeft: '4px solid #FFE500', paddingLeft: '14px' }}>
-          <h1
-            className="leading-none"
-            style={{
-              fontFamily: 'var(--font-bebas, sans-serif)',
-              fontSize: '2.2rem',
-              letterSpacing: '0.04em',
-              color: '#111',
-            }}
-          >
-            NOT TODAY
-          </h1>
-          <p
-            className="hidden sm:block"
-            style={{
-              fontFamily: 'var(--font-jakarta, sans-serif)',
-              fontSize: '0.7rem',
-              color: '#9CA3AF',
-              marginTop: '1px',
-            }}
-          >
-            task manager
-          </p>
-        </div>
-
-        {/* Right: user + dev badge */}
-        <div
-          className="flex items-center gap-2"
-          style={{ fontFamily: 'var(--font-jakarta, sans-serif)', fontSize: '0.75rem', color: '#9CA3AF' }}
-        >
-          <span
-            className="w-1.5 h-1.5 rounded-full inline-block"
-            style={{ backgroundColor: apiReady ? '#22c55e' : '#f59e0b' }}
-          />
-          <span>{DEV_USER.name}</span>
-          <span
-            className="rounded px-1.5 py-0.5"
-            style={{
-              fontSize: '0.65rem',
-              fontWeight: 600,
-              letterSpacing: '0.06em',
-              textTransform: 'uppercase',
-              backgroundColor: '#F3F4F6',
-              color: '#9CA3AF',
-            }}
-          >
-            dev
-          </span>
-        </div>
-      </header>
+    <div className="flex flex-col h-screen bg-white dark:bg-gray-950">
+      <Header />
 
       {/* Two-column board */}
       <DragDropContext onDragEnd={handleDragEnd}>
         <div className="flex flex-1 overflow-hidden">
           {/* TODAY column */}
           <div
-            className="flex-1 flex flex-col overflow-hidden"
-            style={{ borderRight: '1px solid #E5E7EB' }}
+            className="flex-1 flex flex-col overflow-hidden border-r border-gray-200 dark:border-gray-800"
           >
             <TaskList
               list="today"
@@ -312,6 +289,7 @@ if (data.task) setTasks((prev) => prev.map((t) => t.id === id ? data.task : t))
               onStateChange={handleStateChange}
               onMove={handleMove}
               onDelete={handleDelete}
+              onEdit={handleEdit}
               onBlowUp={handleBlowUp}
               blowingUpIds={blowingUpIds}
             />
@@ -325,11 +303,15 @@ if (data.task) setTasks((prev) => prev.map((t) => t.id === id ? data.task : t))
               onStateChange={handleStateChange}
               onMove={handleMove}
               onDelete={handleDelete}
+              onPin={handlePin}
+              onEdit={handleEdit}
               flashKey={notTodayFlashKey}
             />
           </div>
         </div>
       </DragDropContext>
+
+      <Footer />
     </div>
   )
 }

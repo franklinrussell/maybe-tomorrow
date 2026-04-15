@@ -15,6 +15,8 @@ interface Props {
   onStateChange: (id: string, state: TaskState) => void
   onMove: (id: string) => void
   onDelete: (id: string) => void
+  onPin?: (id: string, pinned: boolean) => void
+  onEdit?: (id: string, title: string, notes: string) => void
   onBlowUp?: () => Promise<void>
   blowingUpIds?: Set<string>
   flashKey?: number
@@ -38,6 +40,8 @@ function AnimatedDraggable({
   onStateChange,
   onMove,
   onDelete,
+  onPin,
+  onEdit,
 }: {
   task: Task
   index: number
@@ -46,6 +50,8 @@ function AnimatedDraggable({
   onStateChange: (id: string, state: TaskState) => void
   onMove: (id: string) => void
   onDelete: (id: string) => void
+  onPin?: (id: string, pinned: boolean) => void
+  onEdit?: (id: string, title: string, notes: string) => void
 }) {
   const controls = useAnimation()
 
@@ -93,6 +99,8 @@ function AnimatedDraggable({
               onStateChange={onStateChange}
               onMove={onMove}
               onDelete={onDelete}
+              onPin={onPin}
+              onEdit={onEdit}
               isBlowingUp={isBlowingUp}
             />
           </div>
@@ -109,6 +117,8 @@ export default function TaskList({
   onStateChange,
   onMove,
   onDelete,
+  onPin,
+  onEdit,
   onBlowUp,
   blowingUpIds,
   flashKey = 0,
@@ -134,11 +144,11 @@ export default function TaskList({
   const blowUpDelayMap = new Map(blowUpOrder.map((id, i) => [id, i * 80]))
 
   return (
-    <div className={`flex flex-col h-full ${isToday ? 'bg-white' : 'bg-[#F8F7F5]'}`}>
+    <div className={`flex flex-col h-full ${isToday ? 'bg-white dark:bg-gray-950' : 'bg-[#F8F7F5] dark:bg-gray-900'}`}>
       {/* Column header */}
       <motion.div
         animate={headerControls}
-        className="relative px-6 pt-6 pb-4 border-b border-gray-100"
+        className="relative px-6 pt-6 pb-4 border-b border-gray-100 dark:border-gray-800"
       >
         {/* Task count + bomb button — absolute so they don't affect header height */}
         <div className="absolute top-6 right-6 flex flex-col items-end" style={{ gap: '1px' }}>
@@ -159,11 +169,10 @@ export default function TaskList({
         </div>
         <div>
           <h2
-            className="leading-none"
+            className={`leading-none ${isToday ? 'text-gray-900 dark:text-gray-100' : 'text-gray-400 dark:text-gray-600'}`}
             style={{
               fontFamily: 'var(--font-bebas, sans-serif)',
               fontSize: '2.6rem',
-              color: isToday ? '#111' : '#9CA3AF',
               letterSpacing: '0.02em',
             }}
           >
@@ -193,7 +202,7 @@ export default function TaskList({
             ref={provided.innerRef}
             {...provided.droppableProps}
             className={`flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-2 transition-colors duration-200 ${
-              snapshot.isDraggingOver ? 'bg-amber-50/60' : ''
+              snapshot.isDraggingOver ? 'bg-amber-50/60 dark:bg-amber-900/20' : ''
             }`}
           >
             {sorted.length === 0 && (
@@ -215,6 +224,8 @@ export default function TaskList({
                 onStateChange={onStateChange}
                 onMove={onMove}
                 onDelete={onDelete}
+                onPin={onPin}
+                onEdit={onEdit}
               />
             ))}
 
@@ -224,7 +235,7 @@ export default function TaskList({
       </Droppable>
 
       {/* Footer */}
-      <div className="px-4 pb-5 pt-3 border-t border-gray-100 shrink-0">
+      <div className="px-4 pb-5 pt-3 border-t border-gray-100 dark:border-gray-800 shrink-0">
         <AddTaskInput
           onAdd={onAdd}
           placeholder={isToday ? '+ add to today' : '+ add to not today'}

@@ -2,6 +2,16 @@
 
 import { useEffect, useRef, useState } from 'react'
 
+function ArrowsIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <polyline points="3,6 7,10 3,14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+      <polyline points="8,6 12,10 8,14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+      <polyline points="13,6 17,10 13,14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  )
+}
+
 interface Props {
   onBlowUp: () => Promise<void>
   taskCount: number
@@ -68,22 +78,19 @@ export default function BlowUpButton({ onBlowUp, taskCount }: Props) {
         ml-auto mt-1 h-8 flex items-center justify-center
         rounded-lg select-none transition-all duration-150
         ${disabled
-          ? 'w-8 bg-gray-100 cursor-not-allowed'
+          ? 'w-8 bg-gray-100 dark:bg-gray-700 cursor-not-allowed'
           : isConfirming
-            ? 'px-2.5 cursor-pointer hover:opacity-90 active:scale-[0.98]'
-            : 'w-8 cursor-pointer hover:opacity-90 active:scale-[0.98]'
+            ? 'px-2.5 bg-[#FFFBEB] dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 text-gray-800 dark:text-yellow-200 cursor-pointer hover:opacity-90 active:scale-[0.98]'
+            : 'w-8 bg-gray-100 dark:bg-gray-700 hover:bg-[#FFE500] text-gray-600 dark:text-gray-300 hover:text-black cursor-pointer active:scale-[0.98]'
         }
       `}
-      style={{
-        background: disabled ? undefined : 'linear-gradient(135deg, #FF3B30 0%, #FF5A30 100%)',
-        fontFamily: 'var(--font-jakarta, sans-serif)',
-      }}
+      style={{ fontFamily: 'var(--font-jakarta, sans-serif)' }}
     >
       {loading
-        ? <span className="text-sm leading-none">💣</span>
+        ? <ArrowsIcon />
         : isConfirming
-          ? <span className="text-xs font-semibold leading-none whitespace-nowrap text-white">Everything not today? 💣</span>
-          : <span className="text-sm leading-none">💣</span>
+          ? <span className="text-xs font-semibold leading-none whitespace-nowrap">Maybe all tomorrow?</span>
+          : <ArrowsIcon />
       }
     </button>
   )

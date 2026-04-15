@@ -18,17 +18,13 @@ const plusJakarta = Plus_Jakarta_Sans({
 })
 
 export const metadata: Metadata = {
-  title: 'No, Not Today',
-  description: 'Maybe tomorrow.',
+  title: 'Maybe Tomorrow',
+  description: 'Not today.',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${bebasNeue.variable} ${plusJakarta.variable}`} suppressHydrationWarning>
-      <head>
-        {/* Apply saved theme before first paint to prevent flash */}
-        <script dangerouslySetInnerHTML={{ __html: `try{const t=localStorage.getItem('theme')||( window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');document.documentElement.classList.toggle('dark',t==='dark')}catch{}` }} />
-      </head>
       <body
         className="antialiased bg-white dark:bg-gray-950"
         style={{ fontFamily: 'var(--font-jakarta, sans-serif)' }}

@@ -19,6 +19,7 @@ export interface Task {
   list: TaskList
   order: number
   blownUpCount: number
+  pinned?: boolean
   createdAt: string
   updatedAt: string
   completedAt?: string

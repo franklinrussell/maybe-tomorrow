@@ -1,47 +1,15 @@
 import { auth } from '@/auth'
-import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { ThemeToggle } from '@/components/ThemeToggle'
+import { Header } from '@/components/Header'
+import { Footer } from '@/components/Footer'
 
 export default async function LandingPage() {
   const session = await auth()
-  if (session) redirect('/app')
 
   return (
     <div className="min-h-screen flex flex-col bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100">
 
-      {/* ── HEADER ── */}
-      <header className="sticky top-0 z-50 bg-white dark:bg-gray-950 border-b border-gray-100 dark:border-gray-800">
-        <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
-
-          {/* Logo */}
-          <div className="flex items-center gap-2.5">
-            <div
-              className="w-7 h-7 rounded-md flex items-center justify-center shrink-0"
-              style={{ backgroundColor: '#111' }}
-            >
-              <span style={{ color: '#FFE500', fontSize: '0.7rem', fontWeight: 900, fontFamily: 'Arial Black, sans-serif', letterSpacing: '-0.5px' }}>N!</span>
-            </div>
-            <span
-              className="text-gray-900 dark:text-gray-100"
-              style={{ fontFamily: 'var(--font-jakarta, sans-serif)', fontSize: '0.9rem', fontWeight: 600, letterSpacing: '-0.01em' }}
-            >
-              No, Not Today
-            </span>
-          </div>
-
-          {/* Right: dark toggle + sign in */}
-          <div className="flex items-center gap-1">
-            <ThemeToggle />
-            <Link
-              href="/login"
-              className="ml-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
-            >
-              Sign in
-            </Link>
-          </div>
-        </div>
-      </header>
+      <Header />
 
       {/* ── HERO ── */}
       <section className="flex-1 flex flex-col items-center justify-center px-6 py-32 text-center">
@@ -55,7 +23,7 @@ export default async function LandingPage() {
             color: 'inherit',
           }}
         >
-          NO, NOT TODAY
+          MAYBE TOMORROW
         </div>
 
         <p
@@ -67,16 +35,26 @@ export default async function LandingPage() {
             color: '#9CA3AF',
           }}
         >
-          Maybe tomorrow.
+          Maybe.
         </p>
 
-        <Link
-          href="/login"
-          className="inline-flex items-center rounded-xl px-7 py-3 font-semibold text-sm transition-opacity hover:opacity-85 active:scale-[0.98]"
-          style={{ backgroundColor: '#FFE500', color: '#111', fontFamily: 'var(--font-jakarta, sans-serif)' }}
-        >
-          Get started free
-        </Link>
+        {session ? (
+          <Link
+            href="/app"
+            className="inline-flex items-center rounded-xl px-7 py-3 font-semibold text-sm transition-opacity hover:opacity-85 active:scale-[0.98]"
+            style={{ backgroundColor: '#FFE500', color: '#111', fontFamily: 'var(--font-jakarta, sans-serif)' }}
+          >
+            Get going
+          </Link>
+        ) : (
+          <Link
+            href="/login"
+            className="inline-flex items-center rounded-xl px-7 py-3 font-semibold text-sm transition-opacity hover:opacity-85 active:scale-[0.98]"
+            style={{ backgroundColor: '#FFE500', color: '#111', fontFamily: 'var(--font-jakarta, sans-serif)' }}
+          >
+            Get started today or tomorrow
+          </Link>
+        )}
       </section>
 
       {/* ── HOW IT WORKS ── */}
@@ -92,7 +70,7 @@ export default async function LandingPage() {
             {[
               { n: '01', title: 'Add your tasks', body: "Dump everything into Today or Not Today. No categories. No friction." },
               { n: '02', title: 'Eliminate the noise', body: "Blow up one or all of the tasks you're not doing today." },
-              { n: '03', title: 'Actually focus', body: "Today only has what you're actually doing. Everything else is...Not Today." },
+              { n: '03', title: 'Actually focus', body: "Today only has what you're actually doing. Everything else is...Maybe Tomorrow." },
             ].map(({ n, title, body }) => (
               <div key={n} className="flex flex-col gap-2">
                 <div style={{ fontFamily: 'var(--font-bebas, sans-serif)', fontSize: '2.5rem', color: '#FFE500', lineHeight: 1 }}>{n}</div>
@@ -128,8 +106,9 @@ export default async function LandingPage() {
               {
                 icon: (
                   <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M3 10 L14 10 M10 6 L14 10 L10 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M3 5 L3 5.01 M3 15 L3 15.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                    <polyline points="3,6 7,10 3,14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <polyline points="8,6 12,10 8,14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <polyline points="13,6 17,10 13,14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                 ),
                 title: 'The sweep button',
@@ -142,45 +121,34 @@ export default async function LandingPage() {
                   </svg>
                 ),
                 title: 'Motivation & Mockery',
-                body: 'Tasks are evaluated and guidance is provided.',
+                body: 'Task commentary...',
               },
-            ].map(({ icon, title, body }) => (
-              <div
-                key={title}
-                className="rounded-xl p-5 bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-800 flex flex-col items-start text-left"
-              >
-                <div className="mb-3 text-gray-900 dark:text-gray-100">{icon}</div>
-                <h3 className="font-semibold text-sm mb-1 text-gray-900 dark:text-gray-100">{title}</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{body}</p>
-              </div>
-            ))}
+            ].map(({ icon, title, body }, i) => {
+              const isComingSoon = i === 2
+              return (
+                <div
+                  key={title}
+                  className={`relative rounded-xl p-5 bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-800 flex flex-col items-start text-left${isComingSoon ? ' opacity-50' : ''}`}
+                >
+                  {isComingSoon && (
+                    <span
+                      className="absolute top-3 right-3 text-[10px] font-medium tracking-wide text-gray-400 dark:text-gray-600"
+                      style={{ fontFamily: 'var(--font-jakarta, sans-serif)' }}
+                    >
+                      coming soon
+                    </span>
+                  )}
+                  <div className="mb-3 text-gray-900 dark:text-gray-100">{icon}</div>
+                  <h3 className="font-semibold text-sm mb-1 text-gray-900 dark:text-gray-100">{title}</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{body}</p>
+                </div>
+              )
+            })}
           </div>
         </div>
       </section>
 
-      {/* ── FOOTER ── */}
-      <footer className="border-t border-gray-100 dark:border-gray-800 py-8 px-6">
-        <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-          <span className="text-xs text-gray-400 dark:text-gray-600">
-            © {new Date().getFullYear()} No, Not Today
-          </span>
-          <nav className="flex items-center gap-5">
-            {[
-              { label: 'Terms', href: '/terms' },
-              { label: 'Privacy', href: '/privacy' },
-              { label: 'Contact', href: '/contact' },
-            ].map(({ label, href }) => (
-              <Link
-                key={href}
-                href={href}
-                className="text-xs text-gray-400 dark:text-gray-600 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
-              >
-                {label}
-              </Link>
-            ))}
-          </nav>
-        </div>
-      </footer>
+      <Footer />
 
     </div>
   )

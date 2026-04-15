@@ -36,6 +36,15 @@ async function initUserTasks(userId: string) {
   await updateTasks((d) => ({ ...d, [userId]: seed }))
 }
 
+const emailServer = process.env.EMAIL_SERVER
+const emailFrom = process.env.EMAIL_FROM
+
+console.log('[auth] EMAIL_SERVER:', emailServer
+  ? emailServer.replace(/:([^@]+)@/, ':***@')
+  : 'NOT SET')
+console.log('[auth] EMAIL_FROM:', emailFrom ?? 'NOT SET')
+
+
 export const { handlers, signIn, signOut, auth } = NextAuth({
   adapter: OnejsonfileAdapter(),
   providers: [
@@ -44,8 +53,34 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     }),
     Nodemailer({
-      server: process.env.EMAIL_SERVER,
-      from: process.env.EMAIL_FROM,
+      server: emailServer,
+      from: emailFrom,
+      sendVerificationRequest: async ({ identifier, url, provider }) => {
+        console.log('[auth] sendVerificationRequest called')
+        console.log('[auth]   to:', identifier)
+        console.log('[auth]   url:', url)
+        console.log('[auth]   server:', typeof provider.server === 'string'
+          ? provider.server.replace(/:([^@]+)@/, ':***@')
+          : JSON.stringify(provider.server))
+        console.log('[auth]   from:', provider.from)
+
+        // Use nodemailer directly so we can catch and log the error
+        const nodemailer = await import('nodemailer')
+        const transport = nodemailer.default.createTransport(provider.server as string)
+        try {
+          const info = await transport.sendMail({
+            to: identifier,
+            from: `Maybe Tomorrow <${provider.from}>`,
+            subject: 'Your Maybe Tomorrow sign in link',
+            text: `Sign in: ${url}\n\nThis link expires in 24 hours.`,
+            html: `<p>Click to sign in to <strong>Maybe Tomorrow</strong>:</p><p><a href="${url}">${url}</a></p><p>This link expires in 24 hours.</p>`,
+          })
+          console.log('[auth] email sent OK, messageId:', info.messageId)
+        } catch (err) {
+          console.error('[auth] email send FAILED:', err)
+          throw err
+        }
+      },
     }),
   ],
   pages: {

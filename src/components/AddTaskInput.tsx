@@ -34,9 +34,10 @@ export default function AddTaskInput({ onAdd, placeholder = '+ add task' }: Prop
           w-full px-3.5 py-2.5 rounded-xl text-sm
           outline-none transition-all duration-150
           placeholder-gray-400
+          text-gray-800 dark:text-gray-100
           ${focused
-            ? 'border-2 border-[#FFE500] bg-[#FFFDE7] ring-4 ring-[#FFE500]/20'
-            : 'border border-[#E5E5E5] bg-gray-50 hover:border-gray-300 border-dashed'
+            ? 'border-2 border-[#FFE500] bg-[#FFFDE7] dark:bg-yellow-900/20 ring-4 ring-[#FFE500]/20'
+            : 'border border-[#E5E5E5] dark:border-gray-700 bg-gray-50 dark:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600 border-dashed'
           }
         `}
         style={{ fontFamily: 'var(--font-jakarta, sans-serif)' }}
