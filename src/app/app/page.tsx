@@ -10,40 +10,6 @@ import { v4 as uuidv4 } from 'uuid'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 
-// Seed data — used only when API returns empty
-const SEED_TASKS: Task[] = [
-  {
-    id: uuidv4(), userId: DEV_USER_ID, title: 'Ship the MVP by end of week',
-    state: 'in_progress', list: 'today', order: 0, blownUpCount: 2,
-    createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
-  },
-  {
-    id: uuidv4(), userId: DEV_USER_ID, title: 'Reply to Slack messages',
-    state: 'not_started', list: 'today', order: 1, blownUpCount: 0,
-    createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
-  },
-  {
-    id: uuidv4(), userId: DEV_USER_ID, title: 'Write tests for auth flow',
-    state: 'not_started', list: 'today', order: 2, blownUpCount: 4,
-    createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
-  },
-  {
-    id: uuidv4(), userId: DEV_USER_ID, title: 'Update project README',
-    state: 'done', list: 'today', order: 3, blownUpCount: 0,
-    createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
-    completedAt: new Date().toISOString(),
-  },
-  {
-    id: uuidv4(), userId: DEV_USER_ID, title: 'Redesign onboarding flow',
-    state: 'not_started', list: 'not_today', order: 0, blownUpCount: 6,
-    createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
-  },
-  {
-    id: uuidv4(), userId: DEV_USER_ID, title: 'Migrate database to Postgres',
-    state: 'not_started', list: 'not_today', order: 1, blownUpCount: 1,
-    createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
-  },
-]
 
 async function apiFetch(path: string, options?: RequestInit) {
   return fetch(path, {
@@ -97,29 +63,29 @@ function applyDragResult(tasks: Task[], result: DropResult): Task[] {
 }
 
 export default function AppPage() {
-  const [tasks, setTasks] = useState<Task[]>(SEED_TASKS)
-  const [apiReady, setApiReady] = useState(false)
+  const [tasks, setTasks] = useState<Task[] | null>(null)
   const [blowingUpIds, setBlowingUpIds] = useState<Set<string>>(new Set())
   const [notTodayFlashKey, setNotTodayFlashKey] = useState(0)
 
   useEffect(() => {
     apiFetch('/api/tasks')
       .then((r) => r.json())
-      .then((data) => {
-        if (Array.isArray(data.tasks) && data.tasks.length > 0) setTasks(data.tasks)
-        setApiReady(true)
-      })
-      .catch(() => setApiReady(true))
+      .then((data) => setTasks(Array.isArray(data.tasks) ? data.tasks : []))
+      .catch(() => setTasks([]))
   }, [])
 
   // Tasks completed on a previous day are hidden from active columns (visible only in Done drawer)
   const todayStr = new Date().toDateString()
   function isHiddenFromActive(t: Task) {
-    return t.state === 'done' && !!t.completedAt && new Date(t.completedAt).toDateString() !== todayStr
+    if (t.state !== 'done') return false
+    if (!t.completedAt) return true  // no completedAt = pre-migration done task, treat as previous day
+    return new Date(t.completedAt).toDateString() !== todayStr
   }
 
-  const todayTasks = tasks.filter((t) => t.list === 'today' && !isHiddenFromActive(t))
-  const notTodayTasks = tasks.filter((t) => t.list === 'not_today' && !isHiddenFromActive(t))
+  const loaded = tasks !== null
+  const taskList = tasks ?? []
+  const todayTasks = taskList.filter((t) => t.list === 'today' && !isHiddenFromActive(t))
+  const notTodayTasks = taskList.filter((t) => t.list === 'not_today' && !isHiddenFromActive(t))
 
   const handleAdd = useCallback(async (list: TaskListType, title: string) => {
     const now = new Date().toISOString()
@@ -130,8 +96,9 @@ export default function AppPage() {
       blownUpCount: 0, createdAt: now, updatedAt: now,
     }
     setTasks((prev) => {
-      const minOrder = Math.min(0, ...prev.filter(t => t.list === list).map(t => t.order))
-      return [...prev, { ...optimistic, order: minOrder - 1 }]
+      const p = prev ?? []
+      const minOrder = Math.min(0, ...p.filter(t => t.list === list).map(t => t.order))
+      return [...p, { ...optimistic, order: minOrder - 1 }]
     })
     try {
       const res = await apiFetch('/api/tasks', {
@@ -139,14 +106,14 @@ export default function AppPage() {
         body: JSON.stringify({ title, list }),
       })
       const data = await res.json()
-      setTasks((prev) => prev.map((t) => (t.id === optimistic.id ? data.task : t)))
+      setTasks((prev) => (prev ?? []).map((t) => (t.id === optimistic.id ? data.task : t)))
     } catch { /* keep optimistic */ }
   }, [tasks])
 
   const handleStateChange = useCallback(async (id: string, state: TaskState) => {
     const now = new Date().toISOString()
     setTasks((prev) =>
-      prev.map((t) => {
+      (prev ?? []).map((t) => {
         if (t.id !== id) return t
         const becomingDone = state === 'done' && t.state !== 'done'
         const leavingDone = t.state === 'done' && state !== 'done'
@@ -164,7 +131,7 @@ export default function AppPage() {
   }, [])
 
   const handleMove = useCallback(async (id: string) => {
-    const task = tasks.find((t) => t.id === id)
+    const task = (tasks ?? []).find((t) => t.id === id)
     if (!task) return
 
     // Pinned Not Today task: copy to Today, leave original in place
@@ -176,24 +143,26 @@ export default function AppPage() {
         order: 0, blownUpCount: 0, createdAt: now, updatedAt: now,
       }
       setTasks((prev) => {
-        const minOrder = Math.min(0, ...prev.filter(t => t.list === 'today').map(t => t.order))
-        return [...prev, { ...copy, order: minOrder - 1 }]
+        const p = prev ?? []
+        const minOrder = Math.min(0, ...p.filter(t => t.list === 'today').map(t => t.order))
+        return [...p, { ...copy, order: minOrder - 1 }]
       })
       try {
         const res = await apiFetch('/api/tasks', { method: 'POST', body: JSON.stringify({ title: copy.title, notes: copy.notes, list: 'today' }) })
         const data = await res.json()
-        if (data.task) setTasks((prev) => prev.map((t) => t.id === copy.id ? data.task : t))
+        if (data.task) setTasks((prev) => (prev ?? []).map((t) => t.id === copy.id ? data.task : t))
       } catch { /* keep optimistic */ }
       return
     }
 
     const newList: TaskListType = task.list === 'today' ? 'not_today' : 'today'
     setTasks((prev) => {
+      const p = prev ?? []
       const movingToNotToday = newList === 'not_today'
       const minOrder = movingToNotToday
-        ? Math.min(0, ...prev.filter(t => t.list === 'not_today' && t.id !== id).map(t => t.order))
+        ? Math.min(0, ...p.filter(t => t.list === 'not_today' && t.id !== id).map(t => t.order))
         : 0
-      return prev.map((t) => {
+      return p.map((t) => {
         if (t.id !== id) return t
         return {
           ...t,
@@ -206,22 +175,33 @@ export default function AppPage() {
     try {
       const res = await apiFetch(`/api/tasks/${id}`, { method: 'PATCH', body: JSON.stringify({ list: newList }) })
       const data = await res.json()
-      if (data.task) setTasks((prev) => prev.map((t) => t.id === id ? data.task : t))
+      if (data.task) setTasks((prev) => (prev ?? []).map((t) => t.id === id ? data.task : t))
     } catch { /* optimistic only */ }
   }, [tasks])
 
   const handleDelete = useCallback(async (id: string) => {
-    setTasks((prev) => prev.filter((t) => t.id !== id))
+    setTasks((prev) => (prev ?? []).filter((t) => t.id !== id))
     try {
       await apiFetch(`/api/tasks/${id}`, { method: 'DELETE' })
     } catch { /* optimistic only */ }
   }, [])
 
+  const handleUndo = useCallback(async (id: string) => {
+    const now = new Date().toISOString()
+    setTasks((prev) =>
+      (prev ?? []).map((t) => t.id === id ? { ...t, state: 'not_started', completedAt: undefined, updatedAt: now } : t)
+    )
+    try {
+      await apiFetch(`/api/tasks/${id}`, { method: 'PATCH', body: JSON.stringify({ state: 'not_started', completedAt: null }) })
+    } catch { /* optimistic only */ }
+  }, [])
+
   const handleMoveToTop = useCallback(async (id: string) => {
     setTasks((prev) => {
-      const task = prev.find((t) => t.id === id)
-      if (!task) return prev
-      const listTasks = sortTasks(prev.filter((t) => t.list === task.list))
+      const p = prev ?? []
+      const task = p.find((t) => t.id === id)
+      if (!task) return p
+      const listTasks = sortTasks(p.filter((t) => t.list === task.list))
       const others = listTasks.filter((t) => t.id !== id)
       const now = new Date().toISOString()
       const reordered = [
@@ -229,7 +209,7 @@ export default function AppPage() {
         ...others.map((t, i) => ({ ...t, order: i + 1, updatedAt: now })),
       ]
       const byId = new Map(reordered.map((t) => [t.id, t]))
-      return prev.map((t) => byId.get(t.id) ?? t)
+      return p.map((t) => byId.get(t.id) ?? t)
     })
     try {
       await apiFetch(`/api/tasks/${id}`, { method: 'PATCH', body: JSON.stringify({ moveToTop: true }) })
@@ -237,14 +217,43 @@ export default function AppPage() {
   }, [])
 
   const handleEdit = useCallback(async (id: string, title: string, notes: string) => {
-    setTasks((prev) => prev.map((t) => t.id === id ? { ...t, title, notes: notes || undefined, updatedAt: new Date().toISOString() } : t))
+    setTasks((prev) => (prev ?? []).map((t) => t.id === id ? { ...t, title, notes: notes || undefined, updatedAt: new Date().toISOString() } : t))
     try {
       await apiFetch(`/api/tasks/${id}`, { method: 'PATCH', body: JSON.stringify({ title, notes: notes || undefined }) })
     } catch { /* optimistic only */ }
   }, [])
 
+  const handleImport = useCallback(async (lines: string[], destination: TaskListType) => {
+    const now = new Date().toISOString()
+    const optimistic: Task[] = lines.map((title) => ({
+      id: uuidv4(), userId: DEV_USER_ID, title,
+      state: 'not_started', list: destination,
+      order: 0, blownUpCount: 0, createdAt: now, updatedAt: now,
+    }))
+    setTasks((prev) => {
+      const p = prev ?? []
+      const minOrder = Math.min(0, ...p.filter(t => t.list === destination).map(t => t.order))
+      const withOrders = optimistic.map((t, i) => ({ ...t, order: minOrder - optimistic.length + i }))
+      return [...p, ...withOrders]
+    })
+    try {
+      const res = await apiFetch('/api/tasks', {
+        method: 'POST',
+        body: JSON.stringify(lines.map((title) => ({ title, list: destination }))),
+      })
+      const data = await res.json()
+      if (Array.isArray(data.tasks)) {
+        const optimisticIds = new Set(optimistic.map((t) => t.id))
+        setTasks((prev) => {
+          const p = (prev ?? []).filter((t) => !optimisticIds.has(t.id))
+          return [...p, ...data.tasks]
+        })
+      }
+    } catch { /* keep optimistic */ }
+  }, [])
+
   const handlePin = useCallback(async (id: string, pinned: boolean) => {
-    setTasks((prev) => prev.map((t) => t.id === id ? { ...t, pinned, updatedAt: new Date().toISOString() } : t))
+    setTasks((prev) => (prev ?? []).map((t) => t.id === id ? { ...t, pinned, updatedAt: new Date().toISOString() } : t))
     try {
       await apiFetch(`/api/tasks/${id}`, { method: 'PATCH', body: JSON.stringify({ pinned }) })
     } catch { /* optimistic only */ }
@@ -252,7 +261,7 @@ export default function AppPage() {
 
   const handleBlowUp = useCallback(async () => {
     const toBlowUp = sortTasks(
-      tasks.filter((t) => t.list === 'today' && t.state !== 'done')
+      (tasks ?? []).filter((t) => t.list === 'today' && t.state !== 'done')
     )
     if (toBlowUp.length === 0) return
 
@@ -268,8 +277,9 @@ export default function AppPage() {
     setBlowingUpIds(new Set())
     const now = new Date().toISOString()
     setTasks((prev) => {
-      const toMove = prev.filter((t) => ids.has(t.id))
-      const rest = prev.filter((t) => !ids.has(t.id))
+      const p = prev ?? []
+      const toMove = p.filter((t) => ids.has(t.id))
+      const rest = p.filter((t) => !ids.has(t.id))
       const existingNotToday = rest
         .filter((t) => t.list === 'not_today')
         .map((t) => ({ ...t, order: t.order + toMove.length }))
@@ -296,7 +306,7 @@ export default function AppPage() {
     if (!destination) return
     if (source.droppableId === destination.droppableId && source.index === destination.index) return
 
-    setTasks((prev) => applyDragResult(prev, result))
+    setTasks((prev) => applyDragResult(prev ?? [], result))
 
     // Persist list change for cross-column drags
     if (source.droppableId !== destination.droppableId) {
@@ -309,7 +319,7 @@ export default function AppPage() {
 
   return (
     <div className="flex flex-col h-screen bg-white dark:bg-gray-950">
-      <Header />
+      <Header onImport={handleImport} />
 
       {/* Two-column board */}
       <DragDropContext onDragEnd={handleDragEnd}>
@@ -321,13 +331,15 @@ export default function AppPage() {
             <TaskList
               list="today"
               tasks={todayTasks}
-              allTasks={tasks}
+              allTasks={taskList}
+              loading={!loaded}
               onAdd={(title) => handleAdd('today', title)}
               onStateChange={handleStateChange}
               onMove={handleMove}
               onDelete={handleDelete}
               onEdit={handleEdit}
               onMoveToTop={handleMoveToTop}
+              onUndo={handleUndo}
               onBlowUp={handleBlowUp}
               blowingUpIds={blowingUpIds}
             />
@@ -337,6 +349,7 @@ export default function AppPage() {
             <TaskList
               list="not_today"
               tasks={notTodayTasks}
+              loading={!loaded}
               onAdd={(title) => handleAdd('not_today', title)}
               onStateChange={handleStateChange}
               onMove={handleMove}

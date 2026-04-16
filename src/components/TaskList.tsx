@@ -13,6 +13,7 @@ interface Props {
   list: TaskListType
   tasks: Task[]
   allTasks?: Task[]  // full unfiltered task list — used for done counter/drawer in Today column
+  loading?: boolean
   onAdd: (title: string) => void
   onStateChange: (id: string, state: TaskState) => void
   onMove: (id: string) => void
@@ -20,6 +21,7 @@ interface Props {
   onPin?: (id: string, pinned: boolean) => void
   onEdit?: (id: string, title: string, notes: string) => void
   onMoveToTop?: (id: string) => void
+  onUndo?: (id: string) => void
   onBlowUp?: () => Promise<void>
   blowingUpIds?: Set<string>
   flashKey?: number
@@ -123,6 +125,7 @@ export default function TaskList({
   list,
   tasks,
   allTasks,
+  loading = false,
   onAdd,
   onStateChange,
   onMove,
@@ -130,6 +133,7 @@ export default function TaskList({
   onPin,
   onEdit,
   onMoveToTop,
+  onUndo,
   onBlowUp,
   blowingUpIds,
   flashKey = 0,
@@ -142,7 +146,12 @@ export default function TaskList({
   // Done drawer state (Today column only)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const source = allTasks ?? tasks
-  const doneCount = source.filter((t) => t.state === 'done').length
+  // Drawer shows done tasks that are hidden from the active list.
+  // Derived by subtraction: all done tasks minus the done tasks already visible in the active column.
+  // This is immune to completedAt date edge cases (backfill, timezone, etc.) and updates reactively on undo.
+  const activeDoneIds = new Set(tasks.filter((t) => t.state === 'done').map((t) => t.id))
+  const drawerTasks = source.filter((t) => t.state === 'done' && !activeDoneIds.has(t.id))
+  const doneCount = drawerTasks.length
 
   // Prevent hydration mismatch — only render DragDropContext after mount
   const [mounted, setMounted] = useState(false)
@@ -221,16 +230,28 @@ export default function TaskList({
               snapshot.isDraggingOver ? 'bg-amber-50/60 dark:bg-amber-900/20' : ''
             }`}
           >
-            {sorted.length === 0 && (
+            {loading && (
+              <>
+                {[40, 32, 40].map((h, i) => (
+                  <div
+                    key={i}
+                    className="rounded-xl bg-gray-100 dark:bg-gray-800 animate-pulse shrink-0"
+                    style={{ height: `${h}px` }}
+                  />
+                ))}
+              </>
+            )}
+
+            {!loading && sorted.length === 0 && isToday && (
               <p
                 className="text-sm py-10 text-center"
                 style={{ fontFamily: 'var(--font-jakarta, sans-serif)', color: '#C4C9D4' }}
               >
-                {isToday ? 'nothing here yet' : 'clean slate'}
+                nothing here yet
               </p>
             )}
 
-            {mounted && sorted.map((task, index) => (
+            {!loading && mounted && sorted.map((task, index) => (
               <AnimatedDraggable
                 key={task.id}
                 task={task}
@@ -260,7 +281,7 @@ export default function TaskList({
             className="mb-2 text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors cursor-pointer"
             style={{ fontFamily: 'var(--font-jakarta, sans-serif)' }}
           >
-            ✓ {doneCount} done
+            {doneCount} ✓
           </button>
         )}
         <AddTaskInput
@@ -272,8 +293,9 @@ export default function TaskList({
       {isToday && (
         <DoneDrawer
           isOpen={drawerOpen}
-          tasks={source}
+          tasks={drawerTasks}
           onClose={() => setDrawerOpen(false)}
+          onUndo={onUndo ?? (() => {})}
         />
       )}
     </div>

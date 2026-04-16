@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { ArrowLeft, X, Pin, PinOff } from 'lucide-react'
+import { ArrowLeft, ArrowUpToLine, X, Pin, PinOff } from 'lucide-react'
 import { Task, TaskState } from '@/types'
 import StateToggle from './StateToggle'
 
@@ -12,6 +12,8 @@ interface Props {
   onDelete: (id: string) => void
   onPin?: (id: string, pinned: boolean) => void
   onEdit?: (id: string, title: string, notes: string) => void
+  onMoveToTop?: (id: string) => void
+  isFirst?: boolean
   isBlowingUp?: boolean
 }
 
@@ -27,6 +29,8 @@ export default function TaskCard({
   onDelete,
   onPin,
   onEdit,
+  onMoveToTop,
+  isFirst = false,
   isBlowingUp = false,
 }: Props) {
   const isDone = task.state === 'done'
@@ -292,6 +296,15 @@ export default function TaskCard({
         {!isEditing && (
           <div className="flex items-center gap-1 shrink-0 mt-0.5">
             {isDone ? null : (<>
+            {/* Move to top — hidden when already first */}
+            {!isFirst && onMoveToTop && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onMoveToTop(task.id) }}
+                className="p-1.5 rounded-md text-gray-400 dark:text-gray-600 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+              >
+                <ArrowUpToLine size={14} strokeWidth={2} />
+              </button>
+            )}
             {/* Pin button — Not Today only */}
             {isNotToday && onPin && (
               <button
