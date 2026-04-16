@@ -40,7 +40,7 @@ export function Footer() {
           {[
             { label: 'Privacy', href: '/privacy' },
             { label: 'Terms', href: '/terms' },
-            { label: 'Support', href: '/contact' },
+            { label: 'Support', href: '/support' },
           ].map(({ label, href }) => (
             <Link
               key={href}
