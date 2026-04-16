@@ -8,14 +8,32 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   try {
     const { id } = await params
     const body = await req.json()
+    const now = new Date().toISOString()
 
     const doc = await updateTasks((d) => {
       const tasks = d[userId] ?? []
       const current = tasks.find((t) => t.id === id)
-      const movingToNotToday = body.list === 'not_today' && current?.list !== 'not_today'
+      if (!current) return d
+
+      // Move to top: reindex all tasks in the same list
+      if (body.moveToTop === true) {
+        const listTasks = tasks.filter((t) => t.list === current.list)
+        const others = listTasks.filter((t) => t.id !== id)
+        const reordered = [
+          { ...current, order: 0, updatedAt: now },
+          ...others.map((t, i) => ({ ...t, order: i + 1, updatedAt: now })),
+        ]
+        const byId = new Map(reordered.map((t) => [t.id, t]))
+        return { ...d, [userId]: tasks.map((t) => byId.get(t.id) ?? t) }
+      }
+
+      // Standard update
+      const movingToNotToday = body.list === 'not_today' && current.list !== 'not_today'
       const minOrder = movingToNotToday
         ? Math.min(0, ...tasks.filter(t => t.list === 'not_today' && t.id !== id).map(t => t.order))
         : 0
+      const becomingDone = body.state === 'done' && current.state !== 'done'
+      const leavingDone = current.state === 'done' && body.state && body.state !== 'done'
       return {
         ...d,
         [userId]: tasks.map((t) => {
@@ -27,7 +45,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
             userId,
             order: movingToNotToday ? minOrder - 1 : (body.order ?? t.order),
             blownUpCount: movingToNotToday ? t.blownUpCount + 1 : (body.blownUpCount ?? t.blownUpCount),
-            updatedAt: new Date().toISOString(),
+            completedAt: becomingDone ? now : leavingDone ? undefined : t.completedAt,
+            updatedAt: now,
           }
         }),
       }

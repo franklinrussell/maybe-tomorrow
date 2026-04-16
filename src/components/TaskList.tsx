@@ -7,16 +7,19 @@ import { Task, TaskState, TaskList as TaskListType } from '@/types'
 import TaskCard from './TaskCard'
 import AddTaskInput from './AddTaskInput'
 import BlowUpButton from './BlowUpButton'
+import DoneDrawer from './DoneDrawer'
 
 interface Props {
   list: TaskListType
   tasks: Task[]
+  allTasks?: Task[]  // full unfiltered task list — used for done counter/drawer in Today column
   onAdd: (title: string) => void
   onStateChange: (id: string, state: TaskState) => void
   onMove: (id: string) => void
   onDelete: (id: string) => void
   onPin?: (id: string, pinned: boolean) => void
   onEdit?: (id: string, title: string, notes: string) => void
+  onMoveToTop?: (id: string) => void
   onBlowUp?: () => Promise<void>
   blowingUpIds?: Set<string>
   flashKey?: number
@@ -37,21 +40,25 @@ function AnimatedDraggable({
   index,
   isBlowingUp,
   blowUpDelay,
+  isFirst,
   onStateChange,
   onMove,
   onDelete,
   onPin,
   onEdit,
+  onMoveToTop,
 }: {
   task: Task
   index: number
   isBlowingUp: boolean
   blowUpDelay: number
+  isFirst: boolean
   onStateChange: (id: string, state: TaskState) => void
   onMove: (id: string) => void
   onDelete: (id: string) => void
   onPin?: (id: string, pinned: boolean) => void
   onEdit?: (id: string, title: string, notes: string) => void
+  onMoveToTop?: (id: string) => void
 }) {
   const controls = useAnimation()
 
@@ -96,11 +103,13 @@ function AnimatedDraggable({
           >
             <TaskCard
               task={task}
+              isFirst={isFirst}
               onStateChange={onStateChange}
               onMove={onMove}
               onDelete={onDelete}
               onPin={onPin}
               onEdit={onEdit}
+              onMoveToTop={onMoveToTop}
               isBlowingUp={isBlowingUp}
             />
           </div>
@@ -113,12 +122,14 @@ function AnimatedDraggable({
 export default function TaskList({
   list,
   tasks,
+  allTasks,
   onAdd,
   onStateChange,
   onMove,
   onDelete,
   onPin,
   onEdit,
+  onMoveToTop,
   onBlowUp,
   blowingUpIds,
   flashKey = 0,
@@ -127,6 +138,11 @@ export default function TaskList({
   const nonDoneCount = tasks.filter((t) => t.state !== 'done').length
   const isToday = list === 'today'
   const headerControls = useAnimation()
+
+  // Done drawer state (Today column only)
+  const [drawerOpen, setDrawerOpen] = useState(false)
+  const source = allTasks ?? tasks
+  const doneCount = source.filter((t) => t.state === 'done').length
 
   // Prevent hydration mismatch — only render DragDropContext after mount
   const [mounted, setMounted] = useState(false)
@@ -219,6 +235,7 @@ export default function TaskList({
                 key={task.id}
                 task={task}
                 index={index}
+                isFirst={index === 0}
                 isBlowingUp={blowingUpIds?.has(task.id) ?? false}
                 blowUpDelay={blowUpDelayMap.get(task.id) ?? 0}
                 onStateChange={onStateChange}
@@ -226,6 +243,7 @@ export default function TaskList({
                 onDelete={onDelete}
                 onPin={onPin}
                 onEdit={onEdit}
+                onMoveToTop={onMoveToTop}
               />
             ))}
 
@@ -236,11 +254,28 @@ export default function TaskList({
 
       {/* Footer */}
       <div className="px-4 pb-5 pt-3 border-t border-gray-100 dark:border-gray-800 shrink-0">
+        {isToday && doneCount > 0 && (
+          <button
+            onClick={() => setDrawerOpen(true)}
+            className="mb-2 text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors cursor-pointer"
+            style={{ fontFamily: 'var(--font-jakarta, sans-serif)' }}
+          >
+            ✓ {doneCount} done
+          </button>
+        )}
         <AddTaskInput
           onAdd={onAdd}
           placeholder={isToday ? '+ add to today' : '+ add to not today'}
         />
       </div>
+
+      {isToday && (
+        <DoneDrawer
+          isOpen={drawerOpen}
+          tasks={source}
+          onClose={() => setDrawerOpen(false)}
+        />
+      )}
     </div>
   )
 }

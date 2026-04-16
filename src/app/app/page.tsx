@@ -112,8 +112,14 @@ export default function AppPage() {
       .catch(() => setApiReady(true))
   }, [])
 
-  const todayTasks = tasks.filter((t) => t.list === 'today')
-  const notTodayTasks = tasks.filter((t) => t.list === 'not_today')
+  // Tasks completed on a previous day are hidden from active columns (visible only in Done drawer)
+  const todayStr = new Date().toDateString()
+  function isHiddenFromActive(t: Task) {
+    return t.state === 'done' && !!t.completedAt && new Date(t.completedAt).toDateString() !== todayStr
+  }
+
+  const todayTasks = tasks.filter((t) => t.list === 'today' && !isHiddenFromActive(t))
+  const notTodayTasks = tasks.filter((t) => t.list === 'not_today' && !isHiddenFromActive(t))
 
   const handleAdd = useCallback(async (list: TaskListType, title: string) => {
     const now = new Date().toISOString()
@@ -138,8 +144,19 @@ export default function AppPage() {
   }, [tasks])
 
   const handleStateChange = useCallback(async (id: string, state: TaskState) => {
+    const now = new Date().toISOString()
     setTasks((prev) =>
-      prev.map((t) => t.id === id ? { ...t, state, updatedAt: new Date().toISOString() } : t)
+      prev.map((t) => {
+        if (t.id !== id) return t
+        const becomingDone = state === 'done' && t.state !== 'done'
+        const leavingDone = t.state === 'done' && state !== 'done'
+        return {
+          ...t,
+          state,
+          updatedAt: now,
+          completedAt: becomingDone ? now : leavingDone ? undefined : t.completedAt,
+        }
+      })
     )
     try {
       await apiFetch(`/api/tasks/${id}`, { method: 'PATCH', body: JSON.stringify({ state }) })
@@ -197,6 +214,25 @@ export default function AppPage() {
     setTasks((prev) => prev.filter((t) => t.id !== id))
     try {
       await apiFetch(`/api/tasks/${id}`, { method: 'DELETE' })
+    } catch { /* optimistic only */ }
+  }, [])
+
+  const handleMoveToTop = useCallback(async (id: string) => {
+    setTasks((prev) => {
+      const task = prev.find((t) => t.id === id)
+      if (!task) return prev
+      const listTasks = sortTasks(prev.filter((t) => t.list === task.list))
+      const others = listTasks.filter((t) => t.id !== id)
+      const now = new Date().toISOString()
+      const reordered = [
+        { ...task, order: 0, updatedAt: now },
+        ...others.map((t, i) => ({ ...t, order: i + 1, updatedAt: now })),
+      ]
+      const byId = new Map(reordered.map((t) => [t.id, t]))
+      return prev.map((t) => byId.get(t.id) ?? t)
+    })
+    try {
+      await apiFetch(`/api/tasks/${id}`, { method: 'PATCH', body: JSON.stringify({ moveToTop: true }) })
     } catch { /* optimistic only */ }
   }, [])
 
@@ -285,11 +321,13 @@ export default function AppPage() {
             <TaskList
               list="today"
               tasks={todayTasks}
+              allTasks={tasks}
               onAdd={(title) => handleAdd('today', title)}
               onStateChange={handleStateChange}
               onMove={handleMove}
               onDelete={handleDelete}
               onEdit={handleEdit}
+              onMoveToTop={handleMoveToTop}
               onBlowUp={handleBlowUp}
               blowingUpIds={blowingUpIds}
             />
@@ -305,6 +343,7 @@ export default function AppPage() {
               onDelete={handleDelete}
               onPin={handlePin}
               onEdit={handleEdit}
+              onMoveToTop={handleMoveToTop}
               flashKey={notTodayFlashKey}
             />
           </div>
