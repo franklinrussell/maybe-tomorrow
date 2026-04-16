@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { CheckCircle } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
@@ -37,6 +37,7 @@ function useYellowFocus() {
 }
 
 export default function SupportPage() {
+  const router = useRouter()
   const { data: session } = useSession()
   const sessionEmail = session?.user?.email ?? ''
   const [form, setForm] = useState({ name: '', category: 'Bug Report', message: '' })
@@ -60,6 +61,7 @@ export default function SupportPage() {
       if (!res.ok || !data.success) throw new Error(data.error ?? 'Unknown error')
       setStatus('success')
       setForm({ name: '', category: 'Bug Report', message: '' })
+      setTimeout(() => router.push('/tasks'), 1500)
     } catch {
       setStatus('error')
     }
@@ -96,15 +98,12 @@ export default function SupportPage() {
 
           {/* Success state */}
           {status === 'success' && (
-            <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 mb-8">
-              <CheckCircle size={18} className="text-green-500 shrink-0" strokeWidth={2} />
-              <p
-                className="text-sm text-green-700 dark:text-green-400"
-                style={{ fontFamily: 'var(--font-jakarta, sans-serif)' }}
-              >
-                Message sent! We'll get back to you soon.
-              </p>
-            </div>
+            <p
+              className="text-sm text-gray-400 dark:text-gray-500 mb-8"
+              style={{ fontFamily: 'var(--font-jakarta, sans-serif)' }}
+            >
+              We'll respond maybe tomorrow.
+            </p>
           )}
 
           {/* Form */}

@@ -1,7 +1,11 @@
+'use client'
+
 import Link from 'next/link'
+import { useSession } from 'next-auth/react'
 import Logo from '@/components/Logo'
 
 export function Footer() {
+  const { data: session } = useSession()
   return (
     <footer
       className="shrink-0 bg-white dark:bg-gray-950 border-t border-gray-200 dark:border-gray-800"
@@ -40,7 +44,7 @@ export function Footer() {
           {[
             { label: 'Privacy', href: '/privacy' },
             { label: 'Terms', href: '/terms' },
-            { label: 'Support', href: '/support' },
+            ...(session ? [{ label: 'Support', href: '/support' }] : []),
           ].map(({ label, href }) => (
             <Link
               key={href}

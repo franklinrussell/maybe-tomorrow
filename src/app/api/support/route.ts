@@ -57,25 +57,31 @@ Maybe Tomorrow
     `.trim()
 
     // Send notification to support inbox
-    await resend.emails.send({
+    console.log('[support] sending notification email...')
+    const notifyResult = await resend.emails.send({
       from: 'Maybe Tomorrow Support <noreply@onejsonfile.com>',
       to: 'fjr@fjr.com',
       replyTo: email,
       subject: `Maybe Tomorrow Support: ${category} from ${name}`,
       text: notifyBody,
     })
+    console.log('[support] notification result:', JSON.stringify(notifyResult, null, 2))
 
     // Auto-reply to sender
-    await resend.emails.send({
+    console.log('[support] sending auto-reply...')
+    const replyResult = await resend.emails.send({
       from: 'Maybe Tomorrow <noreply@onejsonfile.com>',
       to: email,
       subject: 'We got your message — Maybe Tomorrow',
       text: autoReplyBody,
     })
+    console.log('[support] auto-reply result:', JSON.stringify(replyResult, null, 2))
 
     return NextResponse.json({ success: true })
   } catch (err) {
-    console.error('Support route error:', err)
+    console.error('[support] caught error:', err)
+    console.error('[support] error type:', typeof err)
+    console.error('[support] error JSON:', JSON.stringify(err, Object.getOwnPropertyNames(err as object), 2))
     return NextResponse.json({ error: 'Failed to send message.' }, { status: 500 })
   }
 }

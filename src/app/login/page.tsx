@@ -16,7 +16,7 @@ export default function LoginPage() {
     if (!email) return
     setLoading(true)
     try {
-      await signIn('nodemailer', { email, redirect: false, callbackUrl: '/app' })
+      await signIn('nodemailer', { email, redirect: false, callbackUrl: '/tasks' })
       setSent(true)
     } finally {
       setLoading(false)

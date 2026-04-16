@@ -4,7 +4,7 @@ import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 
 export default async function LandingPage() {
-  const session = await auth()
+  const session = await auth().catch(() => null)
 
   return (
     <div className="min-h-screen flex flex-col bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100">
@@ -40,7 +40,7 @@ export default async function LandingPage() {
 
         {session ? (
           <Link
-            href="/app"
+            href="/tasks"
             className="inline-flex items-center rounded-xl px-7 py-3 font-semibold text-sm transition-opacity hover:opacity-85 active:scale-[0.98]"
             style={{ backgroundColor: '#FFE500', color: '#111', fontFamily: 'var(--font-jakarta, sans-serif)' }}
           >
