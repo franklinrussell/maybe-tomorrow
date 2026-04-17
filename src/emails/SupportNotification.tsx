@@ -26,7 +26,7 @@ export function SupportNotification({ name, email, category, message, timestamp 
       <Body style={body}>
         <Container style={container}>
           <Section style={header}>
-            <Text style={brand}>MAYBE TOMORROW — Support Request</Text>
+            <Text style={brand}>→ MAYBE TOMORROW</Text>
           </Section>
 
           <Section style={content}>
