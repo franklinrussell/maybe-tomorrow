@@ -211,6 +211,19 @@ export default function TaskCard({
         </span>
       )}
 
+      {/* Mobile-only move button */}
+      {!isDone && !isEditing && !isBlowingUp && (
+        <div className="md:hidden mb-2">
+          <button
+            onClick={(e) => { e.stopPropagation(); onMove(task.id) }}
+            className="w-full text-xs py-1.5 px-2 rounded-lg bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors cursor-pointer flex items-center justify-center gap-1"
+            style={{ fontFamily: 'var(--font-jakarta, sans-serif)' }}
+          >
+            {isNotToday ? '↑ Today' : '↓ Not Today'}
+          </button>
+        </div>
+      )}
+
       {/* Main content row */}
       <div className="flex items-start gap-2">
 
@@ -218,7 +231,7 @@ export default function TaskCard({
         {isNotToday && (
           <button
             onClick={(e) => { e.stopPropagation(); onMove(task.id) }}
-            className="w-8 h-8 shrink-0 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-[#FFE500] text-gray-600 dark:text-gray-300 hover:text-black transition-colors cursor-pointer flex items-center justify-center mt-0.5"
+            className="w-8 h-8 shrink-0 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-[#FFE500] text-gray-600 dark:text-gray-300 hover:text-black transition-colors cursor-pointer flex items-center justify-center mt-0.5 max-md:hidden"
           >
             <ArrowLeft size={14} strokeWidth={2} />
           </button>

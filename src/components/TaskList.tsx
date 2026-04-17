@@ -169,7 +169,7 @@ export default function TaskList({
   const blowUpDelayMap = new Map(blowUpOrder.map((id, i) => [id, i * 80]))
 
   return (
-    <div className={`flex flex-col h-full ${isToday ? 'bg-white dark:bg-gray-950' : 'bg-[#F8F7F5] dark:bg-gray-900'}`}>
+    <div className={`flex flex-col h-full max-md:h-auto ${isToday ? 'bg-white dark:bg-gray-950' : 'bg-[#F8F7F5] dark:bg-gray-900'}`}>
       {/* Column header */}
       <motion.div
         animate={headerControls}
@@ -226,7 +226,7 @@ export default function TaskList({
           <div
             ref={provided.innerRef}
             {...provided.droppableProps}
-            className={`flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-2 transition-colors duration-200 ${
+            className={`flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-2 transition-colors duration-200 max-md:flex-none max-md:overflow-visible ${
               snapshot.isDraggingOver ? 'bg-amber-50/60 dark:bg-amber-900/20' : ''
             }`}
           >

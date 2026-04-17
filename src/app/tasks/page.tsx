@@ -318,15 +318,15 @@ export default function AppPage() {
   }, [])
 
   return (
-    <div className="flex flex-col h-screen bg-white dark:bg-gray-950">
+    <div className="flex flex-col h-screen bg-white dark:bg-gray-950 max-md:h-auto">
       <Header onImport={handleImport} />
 
       {/* Two-column board */}
       <DragDropContext onDragEnd={handleDragEnd}>
-        <div className="flex flex-1 overflow-hidden">
+        <div className="flex flex-1 overflow-hidden max-md:flex-col max-md:flex-none max-md:overflow-visible">
           {/* TODAY column */}
           <div
-            className="flex-1 flex flex-col overflow-hidden border-r border-gray-200 dark:border-gray-800"
+            className="flex-1 flex flex-col overflow-hidden border-r border-gray-200 dark:border-gray-800 max-md:flex-none max-md:border-r-0 max-md:border-b"
           >
             <TaskList
               list="today"
@@ -345,7 +345,7 @@ export default function AppPage() {
             />
           </div>
           {/* NOT TODAY column */}
-          <div className="flex-1 flex flex-col overflow-hidden">
+          <div className="flex-1 flex flex-col overflow-hidden max-md:flex-none">
             <TaskList
               list="not_today"
               tasks={notTodayTasks}
