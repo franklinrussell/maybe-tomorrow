@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { render } from '@react-email/components'
 import { SupportAutoReply } from '@/emails/SupportAutoReply'
+import { SupportNotification } from '@/emails/SupportNotification'
 
 // In-memory rate limit: email → last submission timestamp
 const recentSubmissions = new Map<string, number>()
@@ -38,37 +39,26 @@ export async function POST(req: NextRequest) {
       timeZone: 'America/Los_Angeles',
     })
 
-    const notifyBody = `
-New support message from Maybe Tomorrow
-
-Name:     ${name}
-Email:    ${email}
-Category: ${category}
-Time:     ${timestamp}
-
-Message:
-${message}
-    `.trim()
-
-    // Render branded HTML auto-reply
-    const autoReplyHtml = await render(
-      SupportAutoReply({ name, category, message })
-    )
+    // Render both templates in parallel
+    const [notifyHtml, autoReplyHtml] = await Promise.all([
+      render(SupportNotification({ name, email, category, message, timestamp })),
+      render(SupportAutoReply({ name, category, message })),
+    ])
 
     // Send notification to support inbox
     await resend.emails.send({
       from: 'Maybe Tomorrow Support <noreply@onejsonfile.com>',
       to: 'fjr@fjr.com',
       replyTo: email,
-      subject: `Maybe Tomorrow Support: ${category} from ${name}`,
-      text: notifyBody,
+      subject: `Support | ${category} | ${name}`,
+      html: notifyHtml,
     })
 
     // Auto-reply to sender with branded HTML template
     await resend.emails.send({
       from: 'Maybe Tomorrow <noreply@onejsonfile.com>',
       to: email,
-      subject: 'We got your message — Maybe Tomorrow',
+      subject: 'Maybe Tomorrow Support',
       html: autoReplyHtml,
     })
 
