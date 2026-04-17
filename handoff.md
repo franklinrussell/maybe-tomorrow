@@ -14,7 +14,8 @@ A two-list task manager. Tasks live in Today or Not Today. The main interaction 
 | Database | onejsonfile.com (one JSON file per collection) |
 | Drag & drop | @hello-pangea/dnd |
 | Animations | Framer Motion |
-| Email | Resend (support form) + Nodemailer via Resend SMTP (magic link auth) |
+| Email | Resend (support form + magic link auth via SMTP) |
+| Email templates | @react-email/components |
 | AI | Anthropic Claude API (stubbed, not yet surfaced in UI) |
 | Fonts | Bebas Neue (`--font-bebas`) · Plus Jakarta Sans (`--font-jakarta`) |
 | Icons | Lucide React |
@@ -76,12 +77,12 @@ All writes go through `updateTasks(mutate)` (read → mutate → write) in `src/
 
 | Route | File | Notes |
 |---|---|---|
-| `/` | `src/app/page.tsx` | Redirects to `/app` if authed, else `/login` |
-| `/app` | `src/app/app/page.tsx` | Main board — requires auth |
+| `/` | `src/app/page.tsx` | Landing page; shows app CTA if authed |
+| `/tasks` | `src/app/tasks/page.tsx` | Main board — requires auth (middleware-protected) |
 | `/login` | `src/app/login/page.tsx` | Google, GitHub, email magic link |
 | `/privacy` | `src/app/privacy/page.tsx` | Privacy policy |
 | `/terms` | `src/app/terms/page.tsx` | Terms of service |
-| `/support` | `src/app/support/page.tsx` | Contact form |
+| `/support` | `src/app/support/page.tsx` | Contact form (session email pre-filled, logged-in only link in footer) |
 
 ---
 
@@ -93,11 +94,29 @@ All writes go through `updateTasks(mutate)` (read → mutate → write) in `src/
 | `/api/tasks/[id]` | PATCH, DELETE | Update (state, list, order, title, notes, pinned, moveToTop) or delete |
 | `/api/tasks/blowup` | POST | Move all non-done Today tasks to top of Not Today, increment blownUpCount |
 | `/api/ai/suggest` | POST | Claude suggestions (stubbed) |
-| `/api/support` | POST | Contact form → Resend email to fjr@fjr.com + auto-reply |
+| `/api/support` | POST | Contact form → branded HTML emails via Resend |
 | `/api/auth/[...nextauth]` | * | NextAuth handler |
 
 ### POST /api/tasks batch import
 Accepts either `{ title, list, ... }` (single) or an array. Array path creates all tasks in one onejsonfile read→mutate→write, returns `{ tasks: Task[] }`.
+
+### POST /api/support
+Validates fields, rate-limits by email (60s in-memory), then sends two emails in parallel via Resend:
+- **SupportNotification** → `fjr@fjr.com`, `replyTo` set to submitter, HTML template
+- **SupportAutoReply** → submitter's email, branded HTML template
+
+---
+
+## Email templates (`src/emails/`)
+
+Both use `@react-email/components`, rendered via `render()` before passing to Resend.
+
+| File | Recipient | Purpose |
+|---|---|---|
+| `SupportNotification.tsx` | fjr@fjr.com | Internal alert with all fields; reply-to set to submitter |
+| `SupportAutoReply.tsx` | Submitter | Branded confirmation; "We'll respond maybe tomorrow." |
+
+Both share the same visual style: `#1a1a1a` black header, `#FFE500` yellow `→ MAYBE TOMORROW` wordmark, `#f4f4f5` message preview box.
 
 ---
 
@@ -106,7 +125,8 @@ Accepts either `{ title, list, ... }` (single) or an array. Array path creates a
 ```
 Header.tsx          — sticky top bar: logo, theme toggle, user avatar dropdown
                       owns isImportOpen state, renders ImportModal
-Footer.tsx          — logo + Privacy / Terms / Support links
+Footer.tsx          — client component; logo + Privacy / Terms / Support links
+                      Support link only shown when session exists (useSession)
 ImportModal.tsx     — batch import overlay (backdrop flex-centers the modal)
 TaskList.tsx        — Today or Not Today column; owns DoneDrawer state
 TaskCard.tsx        — individual task: state toggle, inline edit, pin, move, delete
@@ -156,7 +176,9 @@ Click a task title to enter edit mode. Saves on Enter, click outside, or focus l
 
 ## Auth
 
-NextAuth v5 with a custom `OnejsonfileAdapter` (stored in `src/lib/auth.ts` or similar). Providers: Google, GitHub, email magic link via Resend SMTP. `DEV_USER` / `DEV_USER_ID` constants exist in `src/lib/dev-user.ts` and are currently threaded through the app-level `apiFetch` as an `x-user-id` header — this is a dev shortcut; production auth uses the session via `getUserId()` in API routes.
+NextAuth v5 with a custom `OnejsonfileAdapter` (stored in `src/lib/auth.ts`). Providers: Google, GitHub, email magic link via Resend SMTP. `DEV_USER` / `DEV_USER_ID` constants exist in `src/lib/dev-user.ts` and are threaded through the app-level `apiFetch` as an `x-user-id` header — this is a dev shortcut; production auth uses the session via `getUserId()` in API routes.
+
+The middleware (`src/middleware.ts`) protects `/tasks/:path*` — unauthenticated requests redirect to `/login`. The landing page wraps `auth()` in `.catch(() => null)` so a transient onejsonfile timeout doesn't crash it.
 
 ---
 
@@ -167,11 +189,12 @@ NextAuth v5 with a custom `OnejsonfileAdapter` (stored in `src/lib/auth.ts` or s
 - **`DEV_USER_ID` header** in AppPage's `apiFetch` is a leftover dev shortcut. API routes use `getUserId()` which reads the real session — the header is ignored in production if `getUserId()` succeeds.
 - **AI suggest** route exists but is not wired to any UI yet.
 - **No account deletion flow** — documented in privacy policy as "contact us."
+- **Middleware deprecation warning** — Next.js 16 prefers `proxy` over `middleware` file convention. Functional but will need renaming eventually.
 
 ---
 
 ## Deployment
 
-Vercel. Push to `main` → auto-deploy. Make sure all env vars from `.env.production.example` are set in the Vercel dashboard, including `RESEND_API_KEY` (newly added for the support form).
+Vercel. Push to `main` → auto-deploy. Make sure all env vars from `.env.production.example` are set in the Vercel dashboard.
 
 The `noreply@onejsonfile.com` sender domain must be verified in Resend for both the support form emails and the magic link auth emails to deliver.
