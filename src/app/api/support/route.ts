@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
+import { render } from '@react-email/components'
+import { SupportAutoReply } from '@/emails/SupportAutoReply'
 
 // In-memory rate limit: email → last submission timestamp
 const recentSubmissions = new Map<string, number>()
@@ -48,40 +50,31 @@ Message:
 ${message}
     `.trim()
 
-    const autoReplyBody = `
-Hi ${name},
-
-Thanks for reaching out — we got your message and will get back to you shortly.
-
-Maybe Tomorrow
-    `.trim()
+    // Render branded HTML auto-reply
+    const autoReplyHtml = await render(
+      SupportAutoReply({ name, category, message })
+    )
 
     // Send notification to support inbox
-    console.log('[support] sending notification email...')
-    const notifyResult = await resend.emails.send({
+    await resend.emails.send({
       from: 'Maybe Tomorrow Support <noreply@onejsonfile.com>',
       to: 'fjr@fjr.com',
       replyTo: email,
       subject: `Maybe Tomorrow Support: ${category} from ${name}`,
       text: notifyBody,
     })
-    console.log('[support] notification result:', JSON.stringify(notifyResult, null, 2))
 
-    // Auto-reply to sender
-    console.log('[support] sending auto-reply...')
-    const replyResult = await resend.emails.send({
+    // Auto-reply to sender with branded HTML template
+    await resend.emails.send({
       from: 'Maybe Tomorrow <noreply@onejsonfile.com>',
       to: email,
       subject: 'We got your message — Maybe Tomorrow',
-      text: autoReplyBody,
+      html: autoReplyHtml,
     })
-    console.log('[support] auto-reply result:', JSON.stringify(replyResult, null, 2))
 
     return NextResponse.json({ success: true })
   } catch (err) {
-    console.error('[support] caught error:', err)
-    console.error('[support] error type:', typeof err)
-    console.error('[support] error JSON:', JSON.stringify(err, Object.getOwnPropertyNames(err as object), 2))
+    console.error('[support] error:', err)
     return NextResponse.json({ error: 'Failed to send message.' }, { status: 500 })
   }
 }
