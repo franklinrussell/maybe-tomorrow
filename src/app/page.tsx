@@ -121,29 +121,18 @@ export default async function LandingPage() {
                   </svg>
                 ),
                 title: 'Motivation & Mockery',
-                body: 'Task commentary...',
+                body: 'Honest feedback you didn\'t ask for.',
               },
-            ].map(({ icon, title, body }, i) => {
-              const isComingSoon = i === 2
-              return (
-                <div
-                  key={title}
-                  className={`relative rounded-xl p-5 bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-800 flex flex-col items-start text-left${isComingSoon ? ' opacity-50' : ''}`}
-                >
-                  {isComingSoon && (
-                    <span
-                      className="absolute top-3 right-3 text-[10px] font-medium tracking-wide text-gray-400 dark:text-gray-600"
-                      style={{ fontFamily: 'var(--font-jakarta, sans-serif)' }}
-                    >
-                      coming soon
-                    </span>
-                  )}
-                  <div className="mb-3 text-gray-900 dark:text-gray-100">{icon}</div>
-                  <h3 className="font-semibold text-sm mb-1 text-gray-900 dark:text-gray-100">{title}</h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{body}</p>
-                </div>
-              )
-            })}
+            ].map(({ icon, title, body }) => (
+              <div
+                key={title}
+                className="relative rounded-xl p-5 bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-800 flex flex-col items-start text-left"
+              >
+                <div className="mb-3 text-gray-900 dark:text-gray-100">{icon}</div>
+                <h3 className="font-semibold text-sm mb-1 text-gray-900 dark:text-gray-100">{title}</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{body}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
