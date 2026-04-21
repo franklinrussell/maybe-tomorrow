@@ -121,7 +121,7 @@ export default async function LandingPage() {
                   </svg>
                 ),
                 title: 'Motivation & Mockery',
-                body: 'Honest feedback you didn\'t ask for.',
+                body: 'Feedback you didn\'t ask for.',
               },
             ].map(({ icon, title, body }) => (
               <div
