@@ -13,6 +13,11 @@
 
 * { box-sizing: border-box; }
 
+/* Prevent iOS auto-zoom on focus — triggered when font-size < 16px */
+@media (max-width: 768px) {
+  input, textarea { font-size: 16px !important; }
+}
+
 ::-webkit-scrollbar { width: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #e0e0e0; border-radius: 10px; }
