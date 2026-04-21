@@ -17,9 +17,23 @@ interface Props {
   isBlowingUp?: boolean
 }
 
-function blowDashes(count: number): string {
-  if (count <= 0) return ''
-  return Array(Math.min(count, 25)).fill('—').join(' ')
+function DashStrip({ count, colorClass, position }: { count: number; colorClass: string; position: 'top' | 'bottom' }) {
+  if (count <= 0) return null
+  const filled = Math.min(count, 25)
+  const dashes = Array(filled).fill('—').join(' ')
+  return (
+    <span
+      className={`absolute ${position === 'top' ? 'top-0' : 'bottom-0'} right-3 flex items-center gap-1 select-none leading-none`}
+      style={{ transform: `translateY(${position === 'top' ? '-50%' : '50%'})` }}
+    >
+      {count > 25 && (
+        <span className="text-xs text-gray-400" style={{ fontFamily: 'var(--font-jakarta, sans-serif)', fontWeight: 400 }}>
+          {count}
+        </span>
+      )}
+      <span className={`text-xs font-black ${colorClass}`}>{dashes}</span>
+    </span>
+  )
 }
 
 export default function TaskCard({
@@ -36,9 +50,7 @@ export default function TaskCard({
   const isDone = task.state === 'done'
   const isNotToday = task.list === 'not_today'
   const isPinned = task.pinned ?? false
-  const dashes = blowDashes(task.blownUpCount)
   const daysSinceCreated = Math.floor((Date.now() - new Date(task.createdAt).getTime()) / (1000 * 60 * 60 * 24))
-  const ageDashes = blowDashes(daysSinceCreated)
 
   // Inline edit state
   const [isEditing, setIsEditing] = useState(false)
@@ -118,39 +130,11 @@ export default function TaskCard({
     }
   }
 
-  // Two-stage bomb move
-  const [isBombConfirming, setIsBombConfirming] = useState(false)
-  const bombButtonRef = useRef<HTMLButtonElement>(null)
-  const bombTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  function startBombConfirm() {
-    setIsBombConfirming(true)
-    bombTimeoutRef.current = setTimeout(() => setIsBombConfirming(false), 3000)
-  }
-
-  function cancelBombConfirm() {
-    setIsBombConfirming(false)
-    if (bombTimeoutRef.current) clearTimeout(bombTimeoutRef.current)
-  }
-
-  function handleBombClick(e: React.MouseEvent) {
-    e.stopPropagation()
-    if (isBombConfirming) {
-      cancelBombConfirm()
-      onMove(task.id)
-    } else {
-      startBombConfirm()
-    }
-  }
-
   // Clicking anywhere on the card resets confirm states (but not when editing)
   function handleCardClick(e: React.MouseEvent) {
     if (isEditing) return
     if (isConfirming && !deleteButtonRef.current?.contains(e.target as Node)) {
       cancelConfirm()
-    }
-    if (isBombConfirming && !bombButtonRef.current?.contains(e.target as Node)) {
-      cancelBombConfirm()
     }
   }
 
@@ -158,7 +142,6 @@ export default function TaskCard({
   useEffect(() => {
     return () => {
       if (confirmTimeoutRef.current) clearTimeout(confirmTimeoutRef.current)
-      if (bombTimeoutRef.current) clearTimeout(bombTimeoutRef.current)
     }
   }, [])
 
@@ -197,19 +180,11 @@ export default function TaskCard({
           : '0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04)'
       }}
     >
-      {/* Red dashes — top-right, blownUpCount */}
-      {dashes && (
-        <span className="absolute top-0 right-3 text-xs font-black text-red-500 select-none leading-none tracking-normal" style={{ transform: 'translateY(-50%)' }}>
-          {dashes}
-        </span>
-      )}
+      {/* Blue dashes — top-right, age indicator */}
+      <DashStrip count={daysSinceCreated} colorClass="text-blue-400" position="top" />
 
-      {/* Blue dashes — top-left, age indicator, grows inward from left */}
-      {ageDashes && (
-        <span className="absolute top-0 left-3 text-xs font-black text-blue-400 select-none leading-none tracking-normal flex flex-row-reverse" style={{ transform: 'translateY(-50%)' }}>
-          {ageDashes}
-        </span>
-      )}
+      {/* Red dashes — bottom-right, blownUpCount */}
+      <DashStrip count={task.blownUpCount} colorClass="text-red-500" position="bottom" />
 
       {/* Mobile-only move button */}
       {!isDone && !isEditing && !isBlowingUp && (
@@ -353,33 +328,16 @@ export default function TaskCard({
               )}
             </button>
 
-            {/* Today: sweep two-stage */}
+            {/* Today: move to Not Today */}
             {!isNotToday && (
               <button
-                ref={bombButtonRef}
-                onClick={handleBombClick}
-                className={`
-                  h-8 rounded-lg transition-all duration-150 cursor-pointer flex items-center justify-center
-                  ${isBombConfirming
-                    ? 'px-2 bg-[#FFFBEB] dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 text-gray-800 dark:text-yellow-200'
-                    : 'w-8 bg-gray-100 dark:bg-gray-700 hover:bg-[#FFE500] text-gray-600 dark:text-gray-300 hover:text-black'
-                  }
-                `}
-                style={{ fontFamily: 'var(--font-jakarta, sans-serif)' }}
+                onClick={(e) => { e.stopPropagation(); onMove(task.id) }}
+                className="w-8 h-8 rounded-lg transition-all duration-150 cursor-pointer flex items-center justify-center bg-gray-100 dark:bg-gray-700 hover:bg-[#FFE500] text-gray-600 dark:text-gray-300 hover:text-black"
               >
-                {isBombConfirming
-                  ? <span className="flex items-center gap-1.5 text-xs font-semibold leading-none whitespace-nowrap">
-                      Maybe tomorrow?
-                      <svg width="14" height="14" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                        <line x1="18" y1="50" x2="74" y2="50" stroke="currentColor" strokeWidth="11" strokeLinecap="square"/>
-                        <polyline points="56,28 78,50 56,72" fill="none" stroke="currentColor" strokeWidth="11" strokeLinecap="square" strokeLinejoin="miter"/>
-                      </svg>
-                    </span>
-                  : <svg width="16" height="16" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                      <line x1="18" y1="50" x2="74" y2="50" stroke="currentColor" strokeWidth="11" strokeLinecap="square"/>
-                      <polyline points="56,28 78,50 56,72" fill="none" stroke="currentColor" strokeWidth="11" strokeLinecap="square" strokeLinejoin="miter"/>
-                    </svg>
-                }
+                <svg width="16" height="16" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                  <line x1="18" y1="50" x2="74" y2="50" stroke="currentColor" strokeWidth="11" strokeLinecap="square"/>
+                  <polyline points="56,28 78,50 56,72" fill="none" stroke="currentColor" strokeWidth="11" strokeLinecap="square" strokeLinejoin="miter"/>
+                </svg>
               </button>
             )}
             </>)}
