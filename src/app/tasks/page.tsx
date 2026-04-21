@@ -249,7 +249,7 @@ export default function AppPage() {
   const handleEdit = useCallback(async (id: string, title: string, notes: string) => {
     setTasks((prev) => (prev ?? []).map((t) => t.id === id ? { ...t, title, notes: notes || undefined, updatedAt: new Date().toISOString() } : t))
     try {
-      await apiFetch(`/api/tasks/${id}`, { method: 'PATCH', body: JSON.stringify({ title, notes: notes || undefined }) })
+      await apiFetch(`/api/tasks/${id}`, { method: 'PATCH', body: JSON.stringify({ title, notes: notes || null }) })
     } catch { /* optimistic only */ }
   }, [])
 
