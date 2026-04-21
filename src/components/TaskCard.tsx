@@ -182,11 +182,11 @@ export default function TaskCard({
           : '0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04)'
       }}
     >
-      {/* Blue dashes — top-right, age indicator */}
-      <DashStrip count={daysSinceCreated} colorClass="text-blue-400" position="top" />
+      {/* Blue dashes — top-right, age indicator (hidden on pinned tasks) */}
+      {!isPinned && <DashStrip count={daysSinceCreated} colorClass="text-blue-400" position="top" />}
 
-      {/* Red dashes — bottom-right, blownUpCount */}
-      <DashStrip count={task.blownUpCount} colorClass="text-red-500" position="bottom" />
+      {/* Red dashes — bottom-right, blownUpCount (hidden on pinned tasks) */}
+      {!isPinned && <DashStrip count={task.blownUpCount} colorClass="text-red-500" position="bottom" />}
 
       {/* Mobile-only move button */}
       {!isDone && !isEditing && !isBlowingUp && (

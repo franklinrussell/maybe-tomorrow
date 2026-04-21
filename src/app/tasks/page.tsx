@@ -171,6 +171,20 @@ export default function AppPage() {
       return
     }
 
+    // Today copy of a pinned task: delete instead of moving back to Not Today
+    if (task.list === 'today' && !task.pinned) {
+      const hasPinnedOriginal = (tasks ?? []).some(
+        (t) => t.list === 'not_today' && t.pinned && t.title === task.title
+      )
+      if (hasPinnedOriginal) {
+        setTasks((prev) => (prev ?? []).filter((t) => t.id !== id))
+        try {
+          await apiFetch(`/api/tasks/${id}`, { method: 'DELETE' })
+        } catch { /* optimistic only */ }
+        return
+      }
+    }
+
     const newList: TaskListType = task.list === 'today' ? 'not_today' : 'today'
     setTasks((prev) => {
       const p = prev ?? []
