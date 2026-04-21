@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import { useCommentary } from '@/hooks/useCommentary'
 import { DragDropContext, DropResult } from '@hello-pangea/dnd'
 import { Task, TaskState, TaskList as TaskListType } from '@/types'
 import { DEV_USER, DEV_USER_ID } from '@/lib/dev-user'
@@ -66,6 +67,21 @@ export default function AppPage() {
   const [tasks, setTasks] = useState<Task[] | null>(null)
   const [blowingUpIds, setBlowingUpIds] = useState<Set<string>>(new Set())
   const [notTodayFlashKey, setNotTodayFlashKey] = useState(0)
+  const [commentaryEnabled, setCommentaryEnabled] = useState(true)
+
+  useEffect(() => {
+    if (localStorage.getItem('commentary-enabled') === 'false') setCommentaryEnabled(false)
+  }, [])
+
+  const handleToggleCommentary = useCallback(() => {
+    setCommentaryEnabled((prev) => {
+      const next = !prev
+      localStorage.setItem('commentary-enabled', String(next))
+      return next
+    })
+  }, [])
+
+  const comments = useCommentary(tasks ?? [], commentaryEnabled)
 
   useEffect(() => {
     apiFetch('/api/tasks')
@@ -319,7 +335,7 @@ export default function AppPage() {
 
   return (
     <div className="flex flex-col h-screen bg-white dark:bg-gray-950 max-md:h-auto">
-      <Header onImport={handleImport} />
+      <Header onImport={handleImport} commentaryEnabled={commentaryEnabled} onToggleCommentary={handleToggleCommentary} />
 
       {/* Two-column board */}
       <DragDropContext onDragEnd={handleDragEnd}>
@@ -342,6 +358,7 @@ export default function AppPage() {
               onUndo={handleUndo}
               onBlowUp={handleBlowUp}
               blowingUpIds={blowingUpIds}
+              comments={comments}
             />
           </div>
           {/* NOT TODAY column */}
@@ -358,6 +375,7 @@ export default function AppPage() {
               onEdit={handleEdit}
               onMoveToTop={handleMoveToTop}
               flashKey={notTodayFlashKey}
+              comments={comments}
             />
           </div>
         </div>

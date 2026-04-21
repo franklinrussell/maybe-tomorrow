@@ -4,12 +4,20 @@ import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useTheme } from 'next-themes'
 import { useSession, signOut } from 'next-auth/react'
-import { Sun, Moon, User, Upload } from 'lucide-react'
+import { Sun, Moon, User, Upload, Check } from 'lucide-react'
 import Logo from '@/components/Logo'
 import ImportModal from '@/components/ImportModal'
 import { Task, TaskList as TaskListType } from '@/types'
 
-export function Header({ onImport }: { onImport?: (lines: string[], destination: TaskListType) => Promise<void> }) {
+export function Header({
+  onImport,
+  commentaryEnabled = true,
+  onToggleCommentary,
+}: {
+  onImport?: (lines: string[], destination: TaskListType) => Promise<void>
+  commentaryEnabled?: boolean
+  onToggleCommentary?: () => void
+}) {
   const { resolvedTheme, setTheme } = useTheme()
   const { data: session } = useSession()
   const [mounted, setMounted] = useState(false)
@@ -110,6 +118,17 @@ export function Header({ onImport }: { onImport?: (lines: string[], destination:
                     >
                       <Upload size={14} className="text-gray-400" />
                       Import tasks
+                    </button>
+                    {/* Commentary toggle */}
+                    <button
+                      onClick={() => { onToggleCommentary?.() }}
+                      className="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer flex items-center gap-2"
+                      style={{ fontFamily: 'var(--font-jakarta, sans-serif)' }}
+                    >
+                      <span className="w-3.5 flex items-center justify-center shrink-0">
+                        {commentaryEnabled && <Check size={12} className="text-gray-500 dark:text-gray-400" />}
+                      </span>
+                      Commentary
                     </button>
                     <div className="border-t border-gray-100 dark:border-gray-800 my-1" />
                     {/* Sign out */}

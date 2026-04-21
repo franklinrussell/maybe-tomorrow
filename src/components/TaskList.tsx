@@ -25,6 +25,7 @@ interface Props {
   onBlowUp?: () => Promise<void>
   blowingUpIds?: Set<string>
   flashKey?: number
+  comments?: Record<string, string>
 }
 
 export function sortTasks(tasks: Task[]): Task[] {
@@ -49,6 +50,7 @@ function AnimatedDraggable({
   onPin,
   onEdit,
   onMoveToTop,
+  comment,
 }: {
   task: Task
   index: number
@@ -61,6 +63,7 @@ function AnimatedDraggable({
   onPin?: (id: string, pinned: boolean) => void
   onEdit?: (id: string, title: string, notes: string) => void
   onMoveToTop?: (id: string) => void
+  comment?: string
 }) {
   const controls = useAnimation()
 
@@ -113,6 +116,7 @@ function AnimatedDraggable({
               onEdit={onEdit}
               onMoveToTop={onMoveToTop}
               isBlowingUp={isBlowingUp}
+              comment={comment}
             />
           </div>
         )}
@@ -137,6 +141,7 @@ export default function TaskList({
   onBlowUp,
   blowingUpIds,
   flashKey = 0,
+  comments,
 }: Props) {
   const sorted = sortTasks(tasks)
   const nonDoneCount = tasks.filter((t) => t.state !== 'done').length
@@ -265,6 +270,7 @@ export default function TaskList({
                 onPin={onPin}
                 onEdit={onEdit}
                 onMoveToTop={onMoveToTop}
+                comment={comments?.[task.id]}
               />
             ))}
 

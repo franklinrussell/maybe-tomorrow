@@ -15,6 +15,7 @@ interface Props {
   onMoveToTop?: (id: string) => void
   isFirst?: boolean
   isBlowingUp?: boolean
+  comment?: string
 }
 
 function DashStrip({ count, colorClass, position }: { count: number; colorClass: string; position: 'top' | 'bottom' }) {
@@ -46,6 +47,7 @@ export default function TaskCard({
   onMoveToTop,
   isFirst = false,
   isBlowingUp = false,
+  comment,
 }: Props) {
   const isDone = task.state === 'done'
   const isNotToday = task.list === 'not_today'
@@ -268,6 +270,14 @@ export default function TaskCard({
               >
                 {task.title}
               </p>
+              {!isDone && comment && (
+                <p
+                  className="mt-0.5 text-xs italic text-gray-400 dark:text-gray-500 leading-snug"
+                  style={{ fontFamily: 'var(--font-jakarta, sans-serif)' }}
+                >
+                  {comment}
+                </p>
+              )}
               {task.notes && (
                 <p
                   className="mt-1 text-xs text-gray-400 leading-snug truncate"
