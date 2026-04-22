@@ -70,7 +70,7 @@ export default async function LandingPage() {
             {[
               { n: '01', title: 'Add your tasks', body: "Dump everything into Today or Not Today. No categories. No friction." },
               { n: '02', title: 'Eliminate the noise', body: "Blow up one or all of the tasks you're not doing today." },
-              { n: '03', title: 'Actually focus', body: "Today only has what you're actually doing. Everything else is...Maybe Tomorrow." },
+              { n: '03', title: 'Actually focus', body: "Today only has what you're actually doing. Everything else is...Maybe Tomorrow. Not Today." },
             ].map(({ n, title, body }) => (
               <div key={n} className="flex flex-col gap-2">
                 <div style={{ fontFamily: 'var(--font-bebas, sans-serif)', fontSize: '2.5rem', color: '#FFE500', lineHeight: 1 }}>{n}</div>
@@ -101,7 +101,7 @@ export default async function LandingPage() {
                   </svg>
                 ),
                 title: 'Two lists, just two lists',
-                body: 'Today and Not Today. No overloaded backlog. Just radical focus.',
+                body: 'Today and Not Today. No collection of farcical lists. Just radical focus.',
               },
               {
                 icon: (
