@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useCommentary } from '@/hooks/useCommentary'
 import { DragDropContext, DropResult } from '@hello-pangea/dnd'
 import { Task, TaskState, TaskList as TaskListType } from '@/types'
@@ -89,6 +89,53 @@ export default function AppPage() {
       .then((data) => setTasks(Array.isArray(data.tasks) ? data.tasks : []))
       .catch(() => setTasks([]))
   }, [])
+
+  // Background sync — merge server tasks without clobbering newer local state
+  const syncingRef = useRef(false)
+  const backgroundSync = useCallback(async () => {
+    if (syncingRef.current || blowingUpIds.size > 0) return
+    syncingRef.current = true
+    try {
+      const res = await apiFetch('/api/tasks')
+      const data = await res.json()
+      if (!Array.isArray(data.tasks)) return
+      setTasks((prev) => {
+        if (!prev) return data.tasks
+        const localById = new Map(prev.map((t) => [t.id, t]))
+        const merged = data.tasks.map((serverTask: Task) => {
+          const local = localById.get(serverTask.id)
+          if (!local) return serverTask
+          return new Date(serverTask.updatedAt) > new Date(local.updatedAt) ? serverTask : local
+        })
+        // Keep any local-only tasks (optimistic creates not yet confirmed)
+        const serverIds = new Set(data.tasks.map((t: Task) => t.id))
+        const localOnly = prev.filter((t) => !serverIds.has(t.id))
+        return [...merged, ...localOnly]
+      })
+    } catch { /* silent */ } finally {
+      syncingRef.current = false
+    }
+  }, [blowingUpIds.size])
+
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') backgroundSync()
+    }
+    const handleFocus = () => backgroundSync()
+
+    document.addEventListener('visibilitychange', handleVisibility)
+    window.addEventListener('focus', handleFocus)
+
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') backgroundSync()
+    }, 30_000)
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility)
+      window.removeEventListener('focus', handleFocus)
+      clearInterval(interval)
+    }
+  }, [backgroundSync])
 
   // Tasks completed on a previous day are hidden from active columns (visible only in Done drawer)
   const todayStr = new Date().toDateString()
