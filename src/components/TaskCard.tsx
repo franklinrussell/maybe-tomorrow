@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { ArrowLeft, ArrowUpToLine, X, Pin, PinOff } from 'lucide-react'
+import { ArrowLeft, ArrowUpToLine, ArrowDownToLine, X, Pin, PinOff } from 'lucide-react'
 import { Task, TaskState } from '@/types'
 import StateToggle from './StateToggle'
 
@@ -13,7 +13,9 @@ interface Props {
   onPin?: (id: string, pinned: boolean) => void
   onEdit?: (id: string, title: string, notes: string) => void
   onMoveToTop?: (id: string) => void
+  onMoveToBottom?: (id: string) => void
   isFirst?: boolean
+  isLast?: boolean
   isBlowingUp?: boolean
   comment?: string
 }
@@ -46,8 +48,10 @@ export default function TaskCard({
   onEdit,
   onMoveToTop,
   isFirst = false,
+  isLast = false,
   isBlowingUp = false,
   comment,
+  onMoveToBottom,
 }: Props) {
   const isDone = task.state === 'done'
   const isNotToday = task.list === 'not_today'
@@ -301,6 +305,15 @@ export default function TaskCard({
                 className="p-1.5 rounded-md text-gray-400 dark:text-gray-600 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
               >
                 <ArrowUpToLine size={14} strokeWidth={2} />
+              </button>
+            )}
+            {/* Move to bottom — Not Today only, hidden when already last */}
+            {isNotToday && !isLast && onMoveToBottom && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onMoveToBottom(task.id) }}
+                className="p-1.5 rounded-md text-gray-400 dark:text-gray-600 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+              >
+                <ArrowDownToLine size={14} strokeWidth={2} />
               </button>
             )}
             {/* Pin button — Not Today only */}

@@ -21,6 +21,7 @@ interface Props {
   onPin?: (id: string, pinned: boolean) => void
   onEdit?: (id: string, title: string, notes: string) => void
   onMoveToTop?: (id: string) => void
+  onMoveToBottom?: (id: string) => void
   onUndo?: (id: string) => void
   onBlowUp?: () => Promise<void>
   blowingUpIds?: Set<string>
@@ -50,6 +51,8 @@ function AnimatedDraggable({
   onPin,
   onEdit,
   onMoveToTop,
+  onMoveToBottom,
+  isLast,
   comment,
 }: {
   task: Task
@@ -63,6 +66,8 @@ function AnimatedDraggable({
   onPin?: (id: string, pinned: boolean) => void
   onEdit?: (id: string, title: string, notes: string) => void
   onMoveToTop?: (id: string) => void
+  onMoveToBottom?: (id: string) => void
+  isLast?: boolean
   comment?: string
 }) {
   const controls = useAnimation()
@@ -115,6 +120,8 @@ function AnimatedDraggable({
               onPin={onPin}
               onEdit={onEdit}
               onMoveToTop={onMoveToTop}
+              onMoveToBottom={onMoveToBottom}
+              isLast={isLast}
               isBlowingUp={isBlowingUp}
               comment={comment}
             />
@@ -137,6 +144,7 @@ export default function TaskList({
   onPin,
   onEdit,
   onMoveToTop,
+  onMoveToBottom,
   onUndo,
   onBlowUp,
   blowingUpIds,
@@ -262,6 +270,7 @@ export default function TaskList({
                 task={task}
                 index={index}
                 isFirst={index === 0}
+                isLast={index === sorted.length - 1}
                 isBlowingUp={blowingUpIds?.has(task.id) ?? false}
                 blowUpDelay={blowUpDelayMap.get(task.id) ?? 0}
                 onStateChange={onStateChange}
@@ -270,6 +279,7 @@ export default function TaskList({
                 onPin={onPin}
                 onEdit={onEdit}
                 onMoveToTop={onMoveToTop}
+                onMoveToBottom={onMoveToBottom}
                 comment={comments?.[task.id]}
               />
             ))}

@@ -27,6 +27,18 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         return { ...d, [userId]: tasks.map((t) => byId.get(t.id) ?? t) }
       }
 
+      // Move to bottom: reindex all tasks in the same list
+      if (body.moveToBottom === true) {
+        const listTasks = tasks.filter((t) => t.list === current.list)
+        const others = listTasks.filter((t) => t.id !== id)
+        const reordered = [
+          ...others.map((t, i) => ({ ...t, order: i, updatedAt: now })),
+          { ...current, order: others.length, updatedAt: now },
+        ]
+        const byId = new Map(reordered.map((t) => [t.id, t]))
+        return { ...d, [userId]: tasks.map((t) => byId.get(t.id) ?? t) }
+      }
+
       // Standard update
       const movingToNotToday = body.list === 'not_today' && current.list !== 'not_today'
       const minOrder = movingToNotToday

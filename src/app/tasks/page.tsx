@@ -246,6 +246,26 @@ export default function AppPage() {
     } catch { /* optimistic only */ }
   }, [])
 
+  const handleMoveToBottom = useCallback(async (id: string) => {
+    setTasks((prev) => {
+      const p = prev ?? []
+      const task = p.find((t) => t.id === id)
+      if (!task) return p
+      const listTasks = sortTasks(p.filter((t) => t.list === task.list))
+      const others = listTasks.filter((t) => t.id !== id)
+      const now = new Date().toISOString()
+      const reordered = [
+        ...others.map((t, i) => ({ ...t, order: i, updatedAt: now })),
+        { ...task, order: others.length, updatedAt: now },
+      ]
+      const byId = new Map(reordered.map((t) => [t.id, t]))
+      return p.map((t) => byId.get(t.id) ?? t)
+    })
+    try {
+      await apiFetch(`/api/tasks/${id}`, { method: 'PATCH', body: JSON.stringify({ moveToBottom: true }) })
+    } catch { /* optimistic only */ }
+  }, [])
+
   const handleEdit = useCallback(async (id: string, title: string, notes: string) => {
     setTasks((prev) => (prev ?? []).map((t) => t.id === id ? { ...t, title, notes: notes || undefined, updatedAt: new Date().toISOString() } : t))
     try {
@@ -388,6 +408,7 @@ export default function AppPage() {
               onPin={handlePin}
               onEdit={handleEdit}
               onMoveToTop={handleMoveToTop}
+              onMoveToBottom={handleMoveToBottom}
               flashKey={notTodayFlashKey}
               comments={comments}
             />
