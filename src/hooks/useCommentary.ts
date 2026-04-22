@@ -23,7 +23,7 @@ function purgeOldKeys(): void {
 }
 
 function selectHalf(tasks: Task[]): string[] {
-  const eligible = tasks.filter((t) => t.state !== 'done')
+  const eligible = tasks.filter((t) => t.state !== 'done' && !t.pinned)
   if (eligible.length === 0) return []
   const count = Math.ceil(eligible.length / 2)
   const shuffled = [...eligible].sort(() => Math.random() - 0.5)
