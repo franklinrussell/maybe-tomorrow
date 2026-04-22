@@ -81,7 +81,7 @@ export default function AppPage() {
     })
   }, [])
 
-  const comments = useCommentary(tasks ?? [], commentaryEnabled)
+  const { comments, addComment } = useCommentary(tasks ?? [], commentaryEnabled)
 
   useEffect(() => {
     apiFetch('/api/tasks')
@@ -123,8 +123,9 @@ export default function AppPage() {
       })
       const data = await res.json()
       setTasks((prev) => (prev ?? []).map((t) => (t.id === optimistic.id ? data.task : t)))
+      if (data.task) addComment(data.task)
     } catch { /* keep optimistic */ }
-  }, [tasks])
+  }, [tasks, addComment])
 
   const handleStateChange = useCallback(async (id: string, state: TaskState) => {
     const now = new Date().toISOString()

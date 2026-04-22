@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Task } from '@/types'
 
 type CommentaryCache = {
@@ -30,7 +30,10 @@ function selectHalf(tasks: Task[]): string[] {
   return shuffled.slice(0, count).map((t) => t.id)
 }
 
-export function useCommentary(tasks: Task[], enabled: boolean): Record<string, string> {
+export function useCommentary(tasks: Task[], enabled: boolean): {
+  comments: Record<string, string>
+  addComment: (task: Task) => Promise<void>
+} {
   const [comments, setComments] = useState<Record<string, string>>({})
   const generatingRef = useRef(false)
   const tasksLoaded = tasks.length > 0
@@ -106,5 +109,43 @@ export function useCommentary(tasks: Task[], enabled: boolean): Record<string, s
     })
   }, [enabled, tasksLoaded]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  return enabled ? comments : {}
+  const addComment = useCallback(async (task: Task) => {
+    if (!enabled || task.pinned || task.state === 'done') return
+    if (Math.random() >= 0.5) return
+
+    try {
+      const res = await fetch('/api/ai/commentary', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          taskId: task.id,
+          title: task.title,
+          notes: task.notes,
+          list: task.list,
+          daysSinceCreated: 0,
+          blownUpCount: 0,
+        }),
+      })
+      const data = await res.json()
+      const comment = (data.comment as string) ?? ''
+      if (!comment) return
+
+      setComments((prev) => {
+        const next = { ...prev, [task.id]: comment }
+        try {
+          const raw = localStorage.getItem(todayKey())
+          if (raw) {
+            const parsed = JSON.parse(raw) as CommentaryCache
+            localStorage.setItem(todayKey(), JSON.stringify({
+              ...parsed,
+              comments: { ...parsed.comments, [task.id]: comment },
+            }))
+          }
+        } catch { /* ignore */ }
+        return next
+      })
+    } catch { /* fail silently */ }
+  }, [enabled])
+
+  return { comments: enabled ? comments : {}, addComment }
 }
