@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Task } from '@/types'
+import { sortTasks } from '@/components/TaskList'
 
 type CommentaryCache = {
   selectedIds: string[]
@@ -72,11 +73,19 @@ export function useCommentary(tasks: Task[], enabled: boolean): {
     const selected = tasks.filter((t) => selectedIds.includes(t.id))
     const now = Date.now()
 
+    // Build position maps keyed by task id: 1-based index in sorted non-done display order
+    const positionMap = new Map<string, { position: number; listSize: number }>()
+    for (const listKey of ['today', 'not_today'] as const) {
+      const listTasks = sortTasks(tasks.filter((t) => t.list === listKey && t.state !== 'done'))
+      listTasks.forEach((t, i) => positionMap.set(t.id, { position: i + 1, listSize: listTasks.length }))
+    }
+
     Promise.all(
       selected.map(async (task) => {
         const daysSinceCreated = Math.floor(
           (now - new Date(task.createdAt).getTime()) / (1000 * 60 * 60 * 24)
         )
+        const { position = 1, listSize = 1 } = positionMap.get(task.id) ?? {}
         try {
           const res = await fetch('/api/ai/commentary', {
             method: 'POST',
@@ -88,6 +97,8 @@ export function useCommentary(tasks: Task[], enabled: boolean): {
               list: task.list,
               daysSinceCreated,
               blownUpCount: task.blownUpCount,
+              position,
+              listSize,
             }),
           })
           const data = await res.json()
@@ -124,6 +135,8 @@ export function useCommentary(tasks: Task[], enabled: boolean): {
           list: task.list,
           daysSinceCreated: 0,
           blownUpCount: 0,
+          position: 1,
+          listSize: tasks.filter((t) => t.list === task.list && t.state !== 'done').length + 1,
         }),
       })
       const data = await res.json()
