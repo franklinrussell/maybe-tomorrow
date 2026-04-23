@@ -23,7 +23,6 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
           { ...current, order: 0, updatedAt: now },
           ...others.map((t, i) => ({ ...t, order: i + 1, updatedAt: now })),
         ]
-        console.log('[moveToTop API] reordered:', reordered.map(t => `${t.title}(order=${t.order})`))
         const byId = new Map(reordered.map((t) => [t.id, t]))
         return { ...d, [userId]: tasks.map((t) => byId.get(t.id) ?? t) }
       }
@@ -66,10 +65,6 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     })
 
     const updated = (doc[userId] ?? []).find((t) => t.id === id)
-    if (body.moveToTop === true) {
-      const list = updated?.list
-      console.log('[moveToTop API] doc after write, list tasks:', (doc[userId] ?? []).filter(t => t.list === list).map(t => `${t.title}(order=${t.order})`))
-    }
     if (!updated) return NextResponse.json({ error: 'Not found' }, { status: 404 })
     return NextResponse.json({ task: updated })
   } catch {

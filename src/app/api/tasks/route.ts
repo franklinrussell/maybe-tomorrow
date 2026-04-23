@@ -9,29 +9,7 @@ export async function GET() {
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   try {
     const doc = await readTasks()
-    let tasks = doc[userId] ?? []
-
-    // One-time migration: backfill completedAt for done tasks that predate this field.
-    // Cap at end-of-yesterday so backfilled tasks always appear in the Done drawer
-    // (updatedAt is often today due to order changes, which would make them look "done today").
-    if (tasks.some((t) => t.state === 'done' && !t.completedAt)) {
-      const endOfYesterday = new Date()
-      endOfYesterday.setDate(endOfYesterday.getDate() - 1)
-      endOfYesterday.setHours(23, 59, 59, 999)
-      const cap = endOfYesterday.toISOString()
-
-      const updated = await updateTasks((d) => ({
-        ...d,
-        [userId]: (d[userId] ?? []).map((t) => {
-          if (!(t.state === 'done' && !t.completedAt)) return t
-          // Use updatedAt if it's genuinely in the past, otherwise fall back to cap
-          const best = t.updatedAt && t.updatedAt < cap ? t.updatedAt : cap
-          return { ...t, completedAt: best }
-        }),
-      }))
-      tasks = updated[userId] ?? []
-    }
-
+    const tasks = doc[userId] ?? []
     return NextResponse.json({ tasks })
   } catch {
     return NextResponse.json({ error: 'Failed to load tasks' }, { status: 500 })

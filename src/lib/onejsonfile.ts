@@ -13,18 +13,12 @@ async function read<T>(token: string): Promise<T> {
 }
 
 async function write<T>(token: string, data: T): Promise<void> {
-  console.log('[onejsonfile write] PUT firing, payload size:', JSON.stringify(data).length, 'bytes')
   const res = await fetch(`${BASE_URL}/${token}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   })
-  console.log('[onejsonfile write] response status:', res.status, res.ok ? 'OK' : 'FAILED')
-  if (!res.ok) {
-    const body = await res.text().catch(() => '(unreadable)')
-    console.log('[onejsonfile write] error body:', body)
-    throw new Error(`onejsonfile write failed: ${res.status}`)
-  }
+  if (!res.ok) throw new Error(`onejsonfile write failed: ${res.status}`)
 }
 
 // Mutex-style update: read → mutate → write
