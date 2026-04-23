@@ -292,7 +292,18 @@ export default function AppPage() {
     })
     inFlightCount.current++
     try {
-      await apiFetch(`/api/tasks/${id}`, { method: 'PATCH', body: JSON.stringify({ moveToTop: true }) })
+      const res = await apiFetch(`/api/tasks/${id}`, { method: 'PATCH', body: JSON.stringify({ moveToTop: true }) })
+      const data = await res.json()
+      // Stamp all tasks in the same list with the server's updatedAt so bgSync doesn't revert the reorder
+      if (data.task?.updatedAt) {
+        const serverTs = data.task.updatedAt
+        setTasks((prev) => {
+          if (!prev) return prev
+          const list = prev.find((t) => t.id === id)?.list
+          if (!list) return prev
+          return prev.map((t) => t.list === list ? { ...t, updatedAt: serverTs } : t)
+        })
+      }
     } catch { /* optimistic only */ } finally {
       inFlightCount.current--
     }
@@ -315,7 +326,17 @@ export default function AppPage() {
     })
     inFlightCount.current++
     try {
-      await apiFetch(`/api/tasks/${id}`, { method: 'PATCH', body: JSON.stringify({ moveToBottom: true }) })
+      const res = await apiFetch(`/api/tasks/${id}`, { method: 'PATCH', body: JSON.stringify({ moveToBottom: true }) })
+      const data = await res.json()
+      if (data.task?.updatedAt) {
+        const serverTs = data.task.updatedAt
+        setTasks((prev) => {
+          if (!prev) return prev
+          const list = prev.find((t) => t.id === id)?.list
+          if (!list) return prev
+          return prev.map((t) => t.list === list ? { ...t, updatedAt: serverTs } : t)
+        })
+      }
     } catch { /* optimistic only */ } finally {
       inFlightCount.current--
     }
