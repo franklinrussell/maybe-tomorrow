@@ -92,8 +92,9 @@ export default function AppPage() {
 
   // Background sync — merge server tasks without clobbering newer local state
   const syncingRef = useRef(false)
+  const inFlightCount = useRef(0)
   const backgroundSync = useCallback(async () => {
-    if (syncingRef.current || blowingUpIds.size > 0) return
+    if (syncingRef.current || blowingUpIds.size > 0 || inFlightCount.current > 0) return
     syncingRef.current = true
     try {
       const res = await apiFetch('/api/tasks')
@@ -289,9 +290,12 @@ export default function AppPage() {
       const byId = new Map(reordered.map((t) => [t.id, t]))
       return p.map((t) => byId.get(t.id) ?? t)
     })
+    inFlightCount.current++
     try {
       await apiFetch(`/api/tasks/${id}`, { method: 'PATCH', body: JSON.stringify({ moveToTop: true }) })
-    } catch { /* optimistic only */ }
+    } catch { /* optimistic only */ } finally {
+      inFlightCount.current--
+    }
   }, [])
 
   const handleMoveToBottom = useCallback(async (id: string) => {
@@ -309,9 +313,12 @@ export default function AppPage() {
       const byId = new Map(reordered.map((t) => [t.id, t]))
       return p.map((t) => byId.get(t.id) ?? t)
     })
+    inFlightCount.current++
     try {
       await apiFetch(`/api/tasks/${id}`, { method: 'PATCH', body: JSON.stringify({ moveToBottom: true }) })
-    } catch { /* optimistic only */ }
+    } catch { /* optimistic only */ } finally {
+      inFlightCount.current--
+    }
   }, [])
 
   const handleEdit = useCallback(async (id: string, title: string, notes: string) => {
