@@ -102,6 +102,8 @@ export default function AppPage() {
       if (!Array.isArray(data.tasks)) return
       setTasks((prev) => {
         if (!prev) return data.tasks
+        // Abort if a reorder completed after bgSync started — its data is stale
+        if (inFlightCount.current > 0) return prev
         const localById = new Map(prev.map((t) => [t.id, t]))
         const merged = data.tasks.map((serverTask: Task) => {
           const local = localById.get(serverTask.id)
