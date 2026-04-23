@@ -18,7 +18,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       // Move to top: reindex all tasks in the same list
       if (body.moveToTop === true) {
         const listTasks = tasks.filter((t) => t.list === current.list)
-        const others = listTasks.filter((t) => t.id !== id)
+        const others = listTasks.filter((t) => t.id !== id).sort((a, b) => a.order - b.order)
         const reordered = [
           { ...current, order: 0, updatedAt: now },
           ...others.map((t, i) => ({ ...t, order: i + 1, updatedAt: now })),
@@ -30,7 +30,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       // Move to bottom: reindex all tasks in the same list
       if (body.moveToBottom === true) {
         const listTasks = tasks.filter((t) => t.list === current.list)
-        const others = listTasks.filter((t) => t.id !== id)
+        const others = listTasks.filter((t) => t.id !== id).sort((a, b) => a.order - b.order)
         const reordered = [
           ...others.map((t, i) => ({ ...t, order: i, updatedAt: now })),
           { ...current, order: others.length, updatedAt: now },
