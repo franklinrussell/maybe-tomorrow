@@ -23,6 +23,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
           { ...current, order: 0, updatedAt: now },
           ...others.map((t, i) => ({ ...t, order: i + 1, updatedAt: now })),
         ]
+        console.log('[moveToTop API] reordered:', reordered.map(t => `${t.title}(order=${t.order})`))
         const byId = new Map(reordered.map((t) => [t.id, t]))
         return { ...d, [userId]: tasks.map((t) => byId.get(t.id) ?? t) }
       }
