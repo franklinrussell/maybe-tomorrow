@@ -66,6 +66,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     })
 
     const updated = (doc[userId] ?? []).find((t) => t.id === id)
+    if (body.moveToTop === true) {
+      const list = updated?.list
+      console.log('[moveToTop API] doc after write, list tasks:', (doc[userId] ?? []).filter(t => t.list === list).map(t => `${t.title}(order=${t.order})`))
+    }
     if (!updated) return NextResponse.json({ error: 'Not found' }, { status: 404 })
     return NextResponse.json({ task: updated })
   } catch {
