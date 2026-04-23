@@ -16,7 +16,7 @@ A two-list task manager. Tasks live in Today or Not Today. The main interaction 
 | Animations | Framer Motion |
 | Email | Resend (support form + magic link auth via SMTP) |
 | Email templates | @react-email/components |
-| AI | Anthropic Claude API (stubbed, not yet surfaced in UI) |
+| AI | Anthropic Claude API — `claude-haiku-4-5-20251001` for commentary |
 | Fonts | Bebas Neue (`--font-bebas`) · Plus Jakarta Sans (`--font-jakarta`) |
 | Icons | Lucide React |
 | Deployment | Vercel |
@@ -51,15 +51,15 @@ interface Task {
   id: string
   userId: string
   title: string
-  notes?: string
+  notes?: string          // null persisted when cleared (treated as absent)
   state: 'not_started' | 'in_progress' | 'done'
   list: 'today' | 'not_today'
-  order: number          // lower = higher on screen
-  blownUpCount: number   // incremented each time swept via blow-up
-  pinned?: boolean       // Not Today only — copy-on-move behaviour
+  order: number           // lower = higher on screen
+  blownUpCount: number    // incremented each time swept via blow-up
+  pinned?: boolean        // Not Today only — copy-on-move behaviour
   createdAt: string
   updatedAt: string
-  completedAt?: string   // set when state → done, cleared on undo
+  completedAt?: string    // set when state → done, cleared on undo
 }
 ```
 
@@ -91,14 +91,20 @@ All writes go through `updateTasks(mutate)` (read → mutate → write) in `src/
 | Route | Methods | Purpose |
 |---|---|---|
 | `/api/tasks` | GET, POST | Fetch all tasks; create one or batch (array body) |
-| `/api/tasks/[id]` | PATCH, DELETE | Update (state, list, order, title, notes, pinned, moveToTop) or delete |
+| `/api/tasks/[id]` | PATCH, DELETE | Update (state, list, order, title, notes, pinned, moveToTop, moveToBottom) or delete |
 | `/api/tasks/blowup` | POST | Move all non-done Today tasks to top of Not Today, increment blownUpCount |
-| `/api/ai/suggest` | POST | Claude suggestions (stubbed) |
+| `/api/ai/suggest` | POST | Claude suggestions (stubbed, no UI) |
+| `/api/ai/commentary` | POST | Single-task snarky comment via Haiku |
 | `/api/support` | POST | Contact form → branded HTML emails via Resend |
 | `/api/auth/[...nextauth]` | * | NextAuth handler |
 
 ### POST /api/tasks batch import
 Accepts either `{ title, list, ... }` (single) or an array. Array path creates all tasks in one onejsonfile read→mutate→write, returns `{ tasks: Task[] }`.
+
+### PATCH /api/tasks/[id] special fields
+- `moveToTop: true` — reindexes the task's list, placing this task first
+- `moveToBottom: true` — reindexes the task's list, placing this task last
+- `notes: null` — clears the note (must send null, not omit the field)
 
 ### POST /api/support
 Validates fields, rate-limits by email (60s in-memory), then sends two emails in parallel via Resend:
@@ -124,13 +130,17 @@ Both share the same visual style: `#1a1a1a` black header, `#FFE500` yellow `→ 
 
 ```
 Header.tsx          — sticky top bar: logo, theme toggle, user avatar dropdown
+                      Commentary toggle in dropdown (persisted to localStorage)
                       owns isImportOpen state, renders ImportModal
 Footer.tsx          — client component; logo + Privacy / Terms / Support links
                       Support link only shown when session exists (useSession)
 ImportModal.tsx     — batch import overlay (backdrop flex-centers the modal)
 TaskList.tsx        — Today or Not Today column; owns DoneDrawer state
 TaskCard.tsx        — individual task: state toggle, inline edit, pin, move, delete
-                      age indicator (blue dashes), blow-up count (red dashes)
+                      age indicator (blue dashes, top-right), blow-up count (red dashes, bottom-right)
+                      both indicators hidden on pinned tasks
+                      snarky AI comment rendered in italics below title (non-done only)
+                      mobile-only ↑/↓ list-switch buttons (md:hidden)
 BlowUpButton.tsx    — two-stage sweep button in Today column footer
 DoneDrawer.tsx      — slide-up sheet of tasks completed on previous days
 AddTaskInput.tsx    — inline add form at column footer
@@ -158,6 +168,9 @@ const drawerTasks = allTasks.filter(t => t.state === 'done' && !activeDoneIds.ha
 ### Pinned Not Today tasks
 `pinned: true` on a Not Today task changes the arrow button behaviour: instead of moving the task, it **copies** it to Today (new UUID, POST /api/tasks) and leaves the original in Not Today unchanged. Useful for recurring items.
 
+- Pinned tasks show no age or blow-up dash indicators
+- Moving the Today copy back to Not Today **deletes** it (title-match against pinned original) rather than creating a duplicate
+
 ### Blow-up / sweep
 BlowUpButton is two-stage (click once to arm, click again to fire). On fire:
 1. Cards animate: shake → fly off screen to the right (staggered 80ms each)
@@ -166,11 +179,36 @@ BlowUpButton is two-stage (click once to arm, click again to fire). On fire:
 4. Flash the Not Today column header
 5. PATCH via `/api/tasks/blowup`
 
+### Move to top / bottom
+- `ArrowUpToLine` button on any card (hidden when already first)
+- `ArrowDownToLine` button on Not Today cards only (hidden when already last)
+- Both use dedicated `moveToTop` / `moveToBottom` PATCH flags; API reindexes the whole list
+
 ### Import
 ImportModal (opened from avatar dropdown → "Import tasks") accepts a textarea of one-per-line task names, a Today/Not Today destination toggle, and submits as a batch POST. Optimistic UI adds tasks immediately; server response reconciles IDs.
 
 ### Inline editing
-Click a task title to enter edit mode. Saves on Enter, click outside, or focus leaving the card. Escape cancels. Action buttons are hidden while editing.
+Click a task title to enter edit mode. Saves on Enter, click outside, or focus leaving the card. Escape cancels. Action buttons are hidden while editing. Clearing notes sends `notes: null` (not omitted) so the clear persists.
+
+### Commentary
+AI-generated snarky one-liners on tasks, powered by `claude-haiku-4-5-20251001`.
+
+- Toggled via avatar dropdown → "Commentary" (checkmark indicator). Default ON. Persisted to `localStorage('commentary-enabled')`.
+- On load, `useCommentary` hook (`src/hooks/useCommentary.ts`) selects ~half of non-done, non-pinned tasks per list (random), fires parallel calls to `/api/ai/commentary`, caches results in `localStorage` keyed by date (`commentary-YYYY-MM-DD`). Old date keys are purged automatically.
+- Cache hit on same day → no API calls; toggle off → on same day restores from cache.
+- Newly created tasks get a 50/50 opportunistic commentary call immediately after POST resolves (via `addComment` returned from the hook). Result merged into state and cache.
+- Comments render in italics below the task title, only when `!isDone`.
+- To force regeneration: clear `commentary-*` keys from localStorage and reload.
+
+### Background sync
+Tasks refetch silently in two cases:
+1. Tab regains visibility (`visibilitychange`) or window fires `focus`
+2. Every 30 seconds while the tab is visible
+
+Merge strategy: server task wins if `serverTask.updatedAt > localTask.updatedAt`; otherwise local wins (preserves optimistic updates). Local-only tasks (unconfirmed creates) are always kept. Sync is skipped during blow-up animation.
+
+### Mobile layout
+Below the `md` breakpoint, columns stack vertically (Today on top, Not Today below) via `max-md:` Tailwind overrides. Desktop layout is completely unchanged. Mobile cards show labeled `↑ Today` / `↓ Not Today` buttons (`md:hidden`) since drag-and-drop is desktop-only. iOS auto-zoom on input focus is prevented via a global `font-size: 16px` rule on `input, textarea` at `max-width: 768px`.
 
 ---
 
@@ -190,6 +228,7 @@ The middleware (`src/middleware.ts`) protects `/tasks/:path*` — unauthenticate
 - **AI suggest** route exists but is not wired to any UI yet.
 - **No account deletion flow** — documented in privacy policy as "contact us."
 - **Middleware deprecation warning** — Next.js 16 prefers `proxy` over `middleware` file convention. Functional but will need renaming eventually.
+- **Commentary title-match for pinned copy deletion** — if a user manually creates a non-pinned Not Today task with the same title as a pinned task, moving a Today task of that title back will delete it rather than move it. Edge case, acceptable for now.
 
 ---
 
