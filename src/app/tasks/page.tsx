@@ -93,6 +93,7 @@ export default function AppPage() {
   // Background sync — merge server tasks without clobbering newer local state
   const syncingRef = useRef(false)
   const inFlightCount = useRef(0)
+  const reorderLock = useRef<Promise<void>>(Promise.resolve())
   const backgroundSync = useCallback(async () => {
     if (syncingRef.current || blowingUpIds.size > 0 || inFlightCount.current > 0) return
     syncingRef.current = true
@@ -277,7 +278,7 @@ export default function AppPage() {
     } catch { /* optimistic only */ }
   }, [])
 
-  const handleMoveToTop = useCallback(async (id: string) => {
+  const handleMoveToTop = useCallback((id: string) => {
     setTasks((prev) => {
       const p = prev ?? []
       const task = p.find((t) => t.id === id)
@@ -292,26 +293,27 @@ export default function AppPage() {
       const byId = new Map(reordered.map((t) => [t.id, t]))
       return p.map((t) => byId.get(t.id) ?? t)
     })
-    inFlightCount.current++
-    try {
-      const res = await apiFetch(`/api/tasks/${id}`, { method: 'PATCH', body: JSON.stringify({ moveToTop: true }) })
-      const data = await res.json()
-      // Stamp all tasks in the same list with the server's updatedAt so bgSync doesn't revert the reorder
-      if (data.task?.updatedAt) {
-        const serverTs = data.task.updatedAt
-        setTasks((prev) => {
-          if (!prev) return prev
-          const list = prev.find((t) => t.id === id)?.list
-          if (!list) return prev
-          return prev.map((t) => t.list === list ? { ...t, updatedAt: serverTs } : t)
-        })
+    reorderLock.current = reorderLock.current.then(async () => {
+      inFlightCount.current++
+      try {
+        const res = await apiFetch(`/api/tasks/${id}`, { method: 'PATCH', body: JSON.stringify({ moveToTop: true }) })
+        const data = await res.json()
+        if (data.task?.updatedAt) {
+          const serverTs = data.task.updatedAt
+          setTasks((prev) => {
+            if (!prev) return prev
+            const list = prev.find((t) => t.id === id)?.list
+            if (!list) return prev
+            return prev.map((t) => t.list === list ? { ...t, updatedAt: serverTs } : t)
+          })
+        }
+      } catch { /* optimistic only */ } finally {
+        inFlightCount.current--
       }
-    } catch { /* optimistic only */ } finally {
-      inFlightCount.current--
-    }
+    })
   }, [])
 
-  const handleMoveToBottom = useCallback(async (id: string) => {
+  const handleMoveToBottom = useCallback((id: string) => {
     setTasks((prev) => {
       const p = prev ?? []
       const task = p.find((t) => t.id === id)
@@ -326,22 +328,24 @@ export default function AppPage() {
       const byId = new Map(reordered.map((t) => [t.id, t]))
       return p.map((t) => byId.get(t.id) ?? t)
     })
-    inFlightCount.current++
-    try {
-      const res = await apiFetch(`/api/tasks/${id}`, { method: 'PATCH', body: JSON.stringify({ moveToBottom: true }) })
-      const data = await res.json()
-      if (data.task?.updatedAt) {
-        const serverTs = data.task.updatedAt
-        setTasks((prev) => {
-          if (!prev) return prev
-          const list = prev.find((t) => t.id === id)?.list
-          if (!list) return prev
-          return prev.map((t) => t.list === list ? { ...t, updatedAt: serverTs } : t)
-        })
+    reorderLock.current = reorderLock.current.then(async () => {
+      inFlightCount.current++
+      try {
+        const res = await apiFetch(`/api/tasks/${id}`, { method: 'PATCH', body: JSON.stringify({ moveToBottom: true }) })
+        const data = await res.json()
+        if (data.task?.updatedAt) {
+          const serverTs = data.task.updatedAt
+          setTasks((prev) => {
+            if (!prev) return prev
+            const list = prev.find((t) => t.id === id)?.list
+            if (!list) return prev
+            return prev.map((t) => t.list === list ? { ...t, updatedAt: serverTs } : t)
+          })
+        }
+      } catch { /* optimistic only */ } finally {
+        inFlightCount.current--
       }
-    } catch { /* optimistic only */ } finally {
-      inFlightCount.current--
-    }
+    })
   }, [])
 
   const handleEdit = useCallback(async (id: string, title: string, notes: string) => {
