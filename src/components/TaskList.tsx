@@ -200,7 +200,7 @@ export default function TaskList({
         className="relative px-6 pt-6 pb-4 border-b border-gray-100 dark:border-gray-800"
       >
         {/* Task count + bomb button — absolute so they don't affect header height */}
-        <div className="absolute top-6 right-6 flex flex-col items-end" style={{ gap: '1px' }}>
+        <div className="absolute top-6 right-6 flex flex-col items-end gap-1">
           <span
             style={{
               fontFamily: 'var(--font-jakarta, sans-serif)',
@@ -217,6 +217,26 @@ export default function TaskList({
           </span>
           {isToday && onBlowUp && (
             <BlowUpButton onBlowUp={onBlowUp} taskCount={nonDoneCount} />
+          )}
+          {!isToday && (
+            <div className="relative w-36">
+              <input
+                type="text"
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
+                placeholder="filter..."
+                className="w-full pl-2.5 pr-6 py-1 text-xs rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-gray-600 dark:text-gray-400 placeholder-gray-400 dark:placeholder-gray-600 outline-none focus:border-gray-400 dark:focus:border-gray-500 transition-colors"
+                style={{ fontFamily: 'var(--font-jakarta, sans-serif)' }}
+              />
+              {filter && (
+                <button
+                  onClick={() => setFilter('')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors cursor-pointer"
+                >
+                  <X size={11} strokeWidth={2.5} />
+                </button>
+              )}
+            </div>
           )}
         </div>
         <div>
@@ -246,30 +266,6 @@ export default function TaskList({
           {isToday ? 'now' : 'later (or never)'}
         </p>
       </motion.div>
-
-      {/* Not Today filter */}
-      {!isToday && (
-        <div className="px-4 pt-2 pb-3 border-b border-gray-100 dark:border-gray-800">
-          <div className="relative">
-            <input
-              type="text"
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-              placeholder="filter..."
-              className="w-full pl-2.5 pr-7 py-1.5 text-xs rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-gray-600 dark:text-gray-400 placeholder-gray-400 dark:placeholder-gray-600 outline-none focus:border-gray-400 dark:focus:border-gray-500 transition-colors"
-              style={{ fontFamily: 'var(--font-jakarta, sans-serif)' }}
-            />
-            {filter && (
-              <button
-                onClick={() => setFilter('')}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors cursor-pointer"
-              >
-                <X size={11} strokeWidth={2.5} />
-              </button>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* Droppable task list */}
       <Droppable droppableId={list} isDropDisabled={!!blowingUpIds?.size}>
