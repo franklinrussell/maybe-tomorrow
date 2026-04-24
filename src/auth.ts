@@ -12,28 +12,8 @@ declare module 'next-auth' {
   }
 }
 
-async function initUserTasks(userId: string) {
-  const doc = await readTasks()
-  if (doc[userId]?.length) return // already seeded
-  const now = new Date().toISOString()
-  const seed: Task[] = [
-    {
-      id: uuidv4(), userId, title: 'Try out Not Today',
-      state: 'in_progress', list: 'today', order: 0,
-      blownUpCount: 0, createdAt: now, updatedAt: now,
-    },
-    {
-      id: uuidv4(), userId, title: 'Add your first real task',
-      state: 'not_started', list: 'today', order: 1,
-      blownUpCount: 0, createdAt: now, updatedAt: now,
-    },
-    {
-      id: uuidv4(), userId, title: 'Things you keep avoiding',
-      state: 'not_started', list: 'not_today', order: 0,
-      blownUpCount: 1, createdAt: now, updatedAt: now,
-    },
-  ]
-  await updateTasks((d) => ({ ...d, [userId]: seed }))
+async function initUserTasks(_userId: string) {
+  // No-op: new users start with an empty board
 }
 
 const emailServer = process.env.EMAIL_SERVER

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import { Check } from 'lucide-react'
 
 interface Props {
   onAdd: (title: string) => void
@@ -21,7 +22,7 @@ export default function AddTaskInput({ onAdd, placeholder = '+ add task' }: Prop
   }
 
   return (
-    <form onSubmit={handleSubmit}>
+    <form onSubmit={handleSubmit} className="flex gap-2">
       <input
         ref={inputRef}
         type="text"
@@ -31,7 +32,7 @@ export default function AddTaskInput({ onAdd, placeholder = '+ add task' }: Prop
         onBlur={() => setFocused(false)}
         placeholder={placeholder}
         className={`
-          w-full px-3.5 py-2.5 rounded-xl text-sm
+          flex-1 px-3.5 py-2.5 rounded-xl text-sm
           outline-none transition-all duration-150
           placeholder-gray-400
           text-gray-800 dark:text-gray-100
@@ -42,6 +43,12 @@ export default function AddTaskInput({ onAdd, placeholder = '+ add task' }: Prop
         `}
         style={{ fontFamily: 'var(--font-jakarta, sans-serif)' }}
       />
+      <button
+        type="submit"
+        className="flex md:hidden items-center justify-center w-10 h-10 rounded-xl bg-[#FFE500] text-black shrink-0 active:opacity-80"
+      >
+        <Check size={18} strokeWidth={2.5} />
+      </button>
     </form>
   )
 }
