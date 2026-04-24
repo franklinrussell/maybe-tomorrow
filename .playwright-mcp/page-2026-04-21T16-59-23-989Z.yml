@@ -1,0 +1,38 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - link "MAYBE TOMORROW beta" [ref=e4] [cursor=pointer]:
+        - /url: /
+        - img [ref=e5]
+        - generic [ref=e8]: MAYBE TOMORROW
+        - generic [ref=e9]: beta
+      - generic [ref=e10]:
+        - button "Toggle dark mode" [ref=e11] [cursor=pointer]:
+          - img [ref=e12]
+        - link "Sign in" [ref=e14] [cursor=pointer]:
+          - /url: /login
+    - generic [ref=e16]:
+      - generic [ref=e17]:
+        - img [ref=e18]
+        - generic [ref=e21]:
+          - paragraph [ref=e22]: Maybe Tomorrow
+          - paragraph [ref=e23]: Maybe.
+      - generic [ref=e24]:
+        - paragraph [ref=e25]: Sign in with your email
+        - generic [ref=e26]:
+          - textbox "your@email.com" [ref=e27]
+          - button "Sign in" [ref=e28] [cursor=pointer]
+    - contentinfo [ref=e29]:
+      - generic [ref=e30]:
+        - link "MAYBE TOMORROW Maybe." [ref=e31] [cursor=pointer]:
+          - /url: /
+          - img [ref=e32]
+          - generic [ref=e35]: MAYBE TOMORROW
+          - generic [ref=e36]: Maybe.
+        - navigation [ref=e37]:
+          - link "Privacy" [ref=e38] [cursor=pointer]:
+            - /url: /privacy
+          - link "Terms" [ref=e39] [cursor=pointer]:
+            - /url: /terms
+  - button "Open Next.js Dev Tools" [ref=e45] [cursor=pointer]:
+    - img [ref=e46]
