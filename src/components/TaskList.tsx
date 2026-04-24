@@ -298,7 +298,7 @@ export default function TaskList({
           <div
             ref={provided.innerRef}
             {...provided.droppableProps}
-            className={`flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-2 transition-colors duration-200 max-md:flex-none max-md:overflow-visible ${
+            className={`flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-2 transition-colors duration-200 max-md:flex-none max-md:overflow-visible min-h-48 ${
               snapshot.isDraggingOver ? 'bg-amber-50/60 dark:bg-amber-900/20' : ''
             }`}
           >
@@ -320,6 +320,15 @@ export default function TaskList({
                 style={{ fontFamily: 'var(--font-jakarta, sans-serif)', color: '#C4C9D4' }}
               >
                 nothing here yet
+              </p>
+            )}
+
+            {!loading && filteredSorted.length === 0 && !isToday && filter && (
+              <p
+                className="text-sm py-10 text-center"
+                style={{ fontFamily: 'var(--font-jakarta, sans-serif)', color: '#C4C9D4' }}
+              >
+                no matches
               </p>
             )}
 
