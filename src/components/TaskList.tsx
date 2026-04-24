@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Droppable, Draggable } from '@hello-pangea/dnd'
 import { motion, useAnimation } from 'framer-motion'
+import { X } from 'lucide-react'
 import { Task, TaskState, TaskList as TaskListType } from '@/types'
 import TaskCard from './TaskCard'
 import AddTaskInput from './AddTaskInput'
@@ -151,9 +152,19 @@ export default function TaskList({
   flashKey = 0,
   comments,
 }: Props) {
+  const [filter, setFilter] = useState('')
   const sorted = sortTasks(tasks)
-  const nonDoneCount = tasks.filter((t) => t.state !== 'done').length
   const isToday = list === 'today'
+  const nonDoneCount = tasks.filter((t) => t.state !== 'done').length
+
+  const filteredSorted = (!isToday && filter)
+    ? sorted.filter((t) => {
+        const q = filter.toLowerCase()
+        return t.title.toLowerCase().includes(q) || (t.notes?.toLowerCase().includes(q) ?? false)
+      })
+    : sorted
+  const filteredNonDoneCount = filteredSorted.filter((t) => t.state !== 'done').length
+
   const headerControls = useAnimation()
 
   // Done drawer state (Today column only)
@@ -199,7 +210,10 @@ export default function TaskList({
               fontVariantNumeric: 'lining-nums',
             }}
           >
-            {nonDoneCount} task{nonDoneCount !== 1 ? 's' : ''}
+            {(!isToday && filter)
+              ? `${filteredNonDoneCount} of ${nonDoneCount} task${nonDoneCount !== 1 ? 's' : ''}`
+              : `${nonDoneCount} task${nonDoneCount !== 1 ? 's' : ''}`
+            }
           </span>
           {isToday && onBlowUp && (
             <BlowUpButton onBlowUp={onBlowUp} taskCount={nonDoneCount} />
@@ -233,6 +247,30 @@ export default function TaskList({
         </p>
       </motion.div>
 
+      {/* Not Today filter */}
+      {!isToday && (
+        <div className="px-4 pt-2 pb-3 border-b border-gray-100 dark:border-gray-800">
+          <div className="relative">
+            <input
+              type="text"
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              placeholder="filter..."
+              className="w-full pl-2.5 pr-7 py-1.5 text-xs rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-gray-600 dark:text-gray-400 placeholder-gray-400 dark:placeholder-gray-600 outline-none focus:border-gray-400 dark:focus:border-gray-500 transition-colors"
+              style={{ fontFamily: 'var(--font-jakarta, sans-serif)' }}
+            />
+            {filter && (
+              <button
+                onClick={() => setFilter('')}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors cursor-pointer"
+              >
+                <X size={11} strokeWidth={2.5} />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Droppable task list */}
       <Droppable droppableId={list} isDropDisabled={!!blowingUpIds?.size}>
         {(provided, snapshot) => (
@@ -255,7 +293,7 @@ export default function TaskList({
               </>
             )}
 
-            {!loading && sorted.length === 0 && isToday && (
+            {!loading && filteredSorted.length === 0 && isToday && (
               <p
                 className="text-sm py-10 text-center"
                 style={{ fontFamily: 'var(--font-jakarta, sans-serif)', color: '#C4C9D4' }}
@@ -264,13 +302,13 @@ export default function TaskList({
               </p>
             )}
 
-            {!loading && mounted && sorted.map((task, index) => (
+            {!loading && mounted && filteredSorted.map((task, index) => (
               <AnimatedDraggable
                 key={task.id}
                 task={task}
                 index={index}
                 isFirst={index === 0}
-                isLast={index === sorted.length - 1}
+                isLast={index === filteredSorted.length - 1}
                 isBlowingUp={blowingUpIds?.has(task.id) ?? false}
                 blowUpDelay={blowUpDelayMap.get(task.id) ?? 0}
                 onStateChange={onStateChange}
