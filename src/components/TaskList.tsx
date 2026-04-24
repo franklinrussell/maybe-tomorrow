@@ -225,6 +225,10 @@ export default function TaskList({
                 value={filter}
                 onChange={(e) => setFilter(e.target.value)}
                 placeholder="filter..."
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck={false}
                 className="w-full pl-2.5 pr-6 py-1 text-xs rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-gray-600 dark:text-gray-400 placeholder-gray-400 dark:placeholder-gray-600 outline-none focus:border-gray-400 dark:focus:border-gray-500 transition-colors"
                 style={{ fontFamily: 'var(--font-jakarta, sans-serif)' }}
               />
