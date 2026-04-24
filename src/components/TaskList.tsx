@@ -172,11 +172,6 @@ export default function TaskList({
 
   useEffect(() => () => { if (filterDebounceRef.current) clearTimeout(filterDebounceRef.current) }, [])
 
-  useEffect(() => {
-    const handler = (e: FocusEvent) => console.log('[focus]', e.target)
-    document.addEventListener('focusin', handler)
-    return () => document.removeEventListener('focusin', handler)
-  }, [])
 
   const sorted = sortTasks(tasks)
   const isToday = list === 'today'
@@ -250,8 +245,6 @@ export default function TaskList({
                 type="text"
                 defaultValue=""
                 onChange={handleFilterChange}
-                onBlur={(e) => console.log('[filter] blur, relatedTarget:', e.relatedTarget)}
-                data-debugid="filter-input"
                 placeholder="filter..."
                 autoComplete="off"
                 autoCorrect="off"
@@ -369,6 +362,7 @@ export default function TaskList({
         <AddTaskInput
           onAdd={onAdd}
           placeholder={isToday ? '+ add to today' : '+ add to not today'}
+          tabIndex={isToday ? undefined : -1}
         />
       </div>
 

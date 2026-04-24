@@ -6,9 +6,10 @@ import { Plus } from 'lucide-react'
 interface Props {
   onAdd: (title: string) => void
   placeholder?: string
+  tabIndex?: number
 }
 
-export default function AddTaskInput({ onAdd, placeholder = '+ add task' }: Props) {
+export default function AddTaskInput({ onAdd, placeholder = '+ add task', tabIndex }: Props) {
   const [value, setValue] = useState('')
   const [focused, setFocused] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -31,6 +32,7 @@ export default function AddTaskInput({ onAdd, placeholder = '+ add task' }: Prop
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
         placeholder={placeholder}
+        tabIndex={tabIndex}
         className={`
           flex-1 px-3.5 py-2.5 rounded-xl text-sm
           outline-none transition-all duration-150
