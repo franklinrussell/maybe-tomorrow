@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { Check } from 'lucide-react'
+import { Plus } from 'lucide-react'
 
 interface Props {
   onAdd: (title: string) => void
@@ -45,9 +45,9 @@ export default function AddTaskInput({ onAdd, placeholder = '+ add task' }: Prop
       />
       <button
         type="submit"
-        className="flex md:hidden items-center justify-center w-10 h-10 rounded-xl bg-[#FFE500] text-black shrink-0 active:opacity-80"
+        className="flex md:hidden self-center items-center justify-center w-7 h-7 rounded-lg bg-[#FFE500] text-black shrink-0 active:opacity-70"
       >
-        <Check size={18} strokeWidth={2.5} />
+        <Plus size={15} strokeWidth={2.5} />
       </button>
     </form>
   )
