@@ -209,6 +209,8 @@ export default function TaskList({
     })
   }, [flashKey]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  const lastNonDoneIndex = filteredSorted.reduce((acc, t, i) => t.state !== 'done' ? i : acc, -1)
+
   const blowUpOrder = sorted.filter((t) => blowingUpIds?.has(t.id)).map((t) => t.id)
   const blowUpDelayMap = new Map(blowUpOrder.map((id, i) => [id, i * 80]))
 
@@ -338,7 +340,7 @@ export default function TaskList({
                 task={task}
                 index={index}
                 isFirst={index === 0}
-                isLast={index === filteredSorted.length - 1}
+                isLast={index === lastNonDoneIndex}
                 isBlowingUp={blowingUpIds?.has(task.id) ?? false}
                 blowUpDelay={blowUpDelayMap.get(task.id) ?? 0}
                 onStateChange={onStateChange}
