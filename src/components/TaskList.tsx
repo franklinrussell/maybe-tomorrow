@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Droppable, Draggable } from '@hello-pangea/dnd'
 import { motion, useAnimation } from 'framer-motion'
 import { X } from 'lucide-react'
@@ -153,6 +153,7 @@ export default function TaskList({
   comments,
 }: Props) {
   const [filter, setFilter] = useState('')
+  const filterInputRef = useRef<HTMLInputElement>(null)
   const sorted = sortTasks(tasks)
   const isToday = list === 'today'
   const nonDoneCount = tasks.filter((t) => t.state !== 'done').length
@@ -221,9 +222,11 @@ export default function TaskList({
           {!isToday && (
             <div className="relative w-36">
               <input
+                ref={filterInputRef}
                 type="text"
                 value={filter}
                 onChange={(e) => setFilter(e.target.value)}
+                onTouchStart={(e) => e.stopPropagation()}
                 placeholder="filter..."
                 autoComplete="off"
                 autoCorrect="off"
