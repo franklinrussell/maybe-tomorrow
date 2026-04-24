@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react'
 import { useCommentary } from '@/hooks/useCommentary'
 import { DragDropContext, DropResult } from '@hello-pangea/dnd'
 import { Task, TaskState, TaskList as TaskListType } from '@/types'
@@ -61,6 +61,74 @@ function applyDragResult(tasks: Task[], result: DropResult): Task[] {
   ])
 
   return tasks.map((t) => updates.get(t.id) ?? t)
+}
+
+function DebugOverlay() {
+  const [active, setActive] = useState(false)
+  const [lines, setLines] = useState<string[]>([])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (!new URLSearchParams(window.location.search).has('debug')) return
+    setActive(true)
+
+    function elLabel(el: EventTarget | null): string {
+      if (!el || !(el instanceof HTMLElement)) return 'null'
+      const tag = el.tagName.toLowerCase()
+      const id = el.id ? `#${el.id}` : ''
+      const cls = el.className && typeof el.className === 'string'
+        ? `.${el.className.trim().split(/\s+/)[0]}`
+        : ''
+      return `${tag}${id}${cls}`
+    }
+
+    function addLine(text: string) {
+      setLines((prev) => [...prev.slice(-7), text])
+    }
+
+    function onFocusIn(e: FocusEvent) {
+      addLine(`focus: ${elLabel(e.target)}`)
+    }
+
+    function onFocusOut(e: FocusEvent) {
+      const target = e.target instanceof HTMLElement ? e.target : null
+      if (target?.dataset.debugid === 'filter-input') {
+        addLine(`filter blur → ${elLabel(e.relatedTarget)}`)
+      }
+    }
+
+    document.addEventListener('focusin', onFocusIn)
+    document.addEventListener('focusout', onFocusOut)
+    return () => {
+      document.removeEventListener('focusin', onFocusIn)
+      document.removeEventListener('focusout', onFocusOut)
+    }
+  }, [])
+
+  if (!active) return null
+
+  return (
+    <div style={{
+      position: 'fixed', bottom: 12, right: 12, zIndex: 9999,
+      background: 'rgba(0,0,0,0.82)', borderRadius: 8, padding: '6px 8px',
+      maxWidth: 280, minWidth: 180,
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+        <span style={{ color: '#aaa', fontFamily: 'monospace', fontSize: 9 }}>focus log</span>
+        <button
+          onClick={() => setLines([])}
+          style={{ color: '#aaa', fontFamily: 'monospace', fontSize: 9, background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px' }}
+        >
+          clear
+        </button>
+      </div>
+      {lines.map((l, i) => (
+        <div key={i} style={{ color: '#fff', fontFamily: 'monospace', fontSize: 10, lineHeight: 1.5, wordBreak: 'break-all' }}>
+          {l}
+        </div>
+      ))}
+    </div>
+  )
 }
 
 export default function AppPage() {
@@ -499,6 +567,7 @@ export default function AppPage() {
       </DragDropContext>
 
       <Footer />
+      <DebugOverlay />
     </div>
   )
 }

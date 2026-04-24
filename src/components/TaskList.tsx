@@ -251,6 +251,7 @@ export default function TaskList({
                 defaultValue=""
                 onChange={handleFilterChange}
                 onBlur={(e) => console.log('[filter] blur, relatedTarget:', e.relatedTarget)}
+                data-debugid="filter-input"
                 placeholder="filter..."
                 autoComplete="off"
                 autoCorrect="off"
