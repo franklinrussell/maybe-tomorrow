@@ -152,8 +152,26 @@ export default function TaskList({
   flashKey = 0,
   comments,
 }: Props) {
-  const [filter, setFilter] = useState('')
+  const [filter, setFilter] = useState('')  // debounced — drives task list
   const filterInputRef = useRef<HTMLInputElement>(null)
+  const filterRawRef = useRef('')
+  const filterDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  function handleFilterChange(e: React.ChangeEvent<HTMLInputElement>) {
+    filterRawRef.current = e.target.value
+    if (filterDebounceRef.current) clearTimeout(filterDebounceRef.current)
+    filterDebounceRef.current = setTimeout(() => setFilter(filterRawRef.current), 150)
+  }
+
+  function clearFilter() {
+    filterRawRef.current = ''
+    if (filterDebounceRef.current) clearTimeout(filterDebounceRef.current)
+    setFilter('')
+    if (filterInputRef.current) filterInputRef.current.value = ''
+  }
+
+  useEffect(() => () => { if (filterDebounceRef.current) clearTimeout(filterDebounceRef.current) }, [])
+
   const sorted = sortTasks(tasks)
   const isToday = list === 'today'
   const nonDoneCount = tasks.filter((t) => t.state !== 'done').length
@@ -224,9 +242,8 @@ export default function TaskList({
               <input
                 ref={filterInputRef}
                 type="text"
-                value={filter}
-                onChange={(e) => setFilter(e.target.value)}
-                onTouchStart={(e) => e.stopPropagation()}
+                defaultValue=""
+                onChange={handleFilterChange}
                 placeholder="filter..."
                 autoComplete="off"
                 autoCorrect="off"
@@ -237,7 +254,7 @@ export default function TaskList({
               />
               {filter && (
                 <button
-                  onClick={() => setFilter('')}
+                  onClick={clearFilter}
                   className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors cursor-pointer"
                 >
                   <X size={11} strokeWidth={2.5} />
