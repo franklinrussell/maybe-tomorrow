@@ -15,6 +15,15 @@ const COLOR_BG: Record<string, string> = {
   purple: 'bg-purple-400 border-purple-400',
 }
 
+const COLOR_SOLID: Record<string, string> = {
+  red: '#f87171',
+  orange: '#fb923c',
+  yellow: '#facc15',
+  green: '#4ade80',
+  blue: '#60a5fa',
+  purple: '#c084fc',
+}
+
 export function nextColor(current: string | null | undefined): string | null {
   if (!current) return 'red'
   const idx = COLOR_CYCLE.indexOf(current as typeof COLOR_CYCLE[number])
@@ -22,10 +31,6 @@ export function nextColor(current: string | null | undefined): string | null {
   return COLOR_CYCLE[idx + 1]
 }
 
-export function colorDotClass(color: string | null | undefined): string {
-  if (!color) return 'bg-transparent border-gray-300 dark:border-gray-600'
-  return COLOR_BG[color] ?? 'bg-transparent border-gray-300 dark:border-gray-600'
-}
 
 interface Props {
   task: Task
@@ -321,11 +326,15 @@ export default function TaskCard({
         {/* Right-side actions: [color] [↑] [↕] [pin] [×] [→] — hidden while editing */}
         {!isEditing && (
           <div className="flex items-center gap-1 shrink-0 mt-0.5">
-            {/* Color tag dot — faint ring when unset, filled when set */}
+            {/* Color tag dot — rainbow border when unset, solid fill when set */}
             {!isDone && onColorChange && (
               <button
                 onClick={(e) => { e.stopPropagation(); onColorChange(task.id, nextColor(task.color)) }}
-                className={`w-3.5 h-3.5 rounded-full border transition-colors cursor-pointer shrink-0 ${colorDotClass(task.color)} ${!task.color ? 'opacity-25 group-hover:opacity-50' : 'opacity-100'}`}
+                className="w-3.5 h-3.5 rounded-full cursor-pointer shrink-0 transition-opacity hover:opacity-80"
+                style={task.color
+                  ? { backgroundColor: COLOR_SOLID[task.color] ?? '#d1d5db', border: '2px solid transparent' }
+                  : { border: '2px solid transparent', background: 'linear-gradient(white, white) padding-box, conic-gradient(red, orange, yellow, green, blue, purple, red) border-box' }
+                }
                 title="cycle color tag"
               />
             )}

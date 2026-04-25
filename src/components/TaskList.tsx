@@ -157,7 +157,7 @@ function ColorFilterButton({ color, onClick }: { color: string | null; onClick: 
     <button
       onClick={onClick}
       title="filter by color"
-      className="w-5 h-5 rounded-full cursor-pointer shrink-0 transition-opacity hover:opacity-80"
+      className="w-3.5 h-3.5 rounded-full cursor-pointer shrink-0 transition-opacity hover:opacity-80"
       style={solidStyle}
     />
   )
