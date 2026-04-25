@@ -5,6 +5,33 @@ import { ArrowLeft, ArrowUpToLine, ArrowDownToLine, X, Pin, PinOff } from 'lucid
 import { Task, TaskState } from '@/types'
 import StateToggle from './StateToggle'
 
+const COLOR_CYCLE = ['red', 'orange', 'yellow', 'green', 'blue', 'purple'] as const
+const COLOR_BG: Record<string, string> = {
+  red: 'bg-red-400 border-red-400',
+  orange: 'bg-orange-400 border-orange-400',
+  yellow: 'bg-yellow-400 border-yellow-400',
+  green: 'bg-green-400 border-green-400',
+  blue: 'bg-blue-400 border-blue-400',
+  purple: 'bg-purple-400 border-purple-400',
+}
+
+const COLOR_SOLID: Record<string, string> = {
+  red: '#f87171',
+  orange: '#fb923c',
+  yellow: '#facc15',
+  green: '#4ade80',
+  blue: '#60a5fa',
+  purple: '#c084fc',
+}
+
+export function nextColor(current: string | null | undefined): string | null {
+  if (!current) return 'red'
+  const idx = COLOR_CYCLE.indexOf(current as typeof COLOR_CYCLE[number])
+  if (idx === -1 || idx === COLOR_CYCLE.length - 1) return null
+  return COLOR_CYCLE[idx + 1]
+}
+
+
 interface Props {
   task: Task
   onStateChange: (id: string, state: TaskState) => void
@@ -14,6 +41,7 @@ interface Props {
   onEdit?: (id: string, title: string, notes: string) => void
   onMoveToTop?: (id: string) => void
   onMoveToBottom?: (id: string) => void
+  onColorChange?: (id: string, color: string | null) => void
   isFirst?: boolean
   isLast?: boolean
   isBlowingUp?: boolean
@@ -47,11 +75,12 @@ export default function TaskCard({
   onPin,
   onEdit,
   onMoveToTop,
+  onMoveToBottom,
+  onColorChange,
   isFirst = false,
   isLast = false,
   isBlowingUp = false,
   comment,
-  onMoveToBottom,
 }: Props) {
   const isDone = task.state === 'done'
   const isNotToday = task.list === 'not_today'
@@ -294,7 +323,7 @@ export default function TaskCard({
           )}
         </div>
 
-        {/* Right-side actions: [pin] [×] [💣→] — hidden for done tasks or while editing */}
+        {/* Right-side actions: [↑] [↕] [pin] [×] [→] [color] — hidden while editing */}
         {!isEditing && (
           <div className="flex items-center gap-1 shrink-0 mt-0.5">
             {isDone ? null : (<>
@@ -351,11 +380,21 @@ export default function TaskCard({
               )}
             </button>
 
+            {/* Color tag dot — after ×, before → */}
+            {onColorChange && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onColorChange(task.id, nextColor(task.color)) }}
+                className="w-3.5 h-3.5 rounded-full cursor-pointer shrink-0 transition-opacity hover:opacity-70"
+                style={{ backgroundColor: task.color ? (COLOR_SOLID[task.color] ?? '#d1d5db') : '#e5e7eb' }}
+                title="cycle color tag"
+              />
+            )}
+
             {/* Today: move to Not Today */}
             {!isNotToday && (
               <button
                 onClick={(e) => { e.stopPropagation(); onMove(task.id) }}
-                className="w-8 h-8 rounded-lg transition-all duration-150 cursor-pointer flex items-center justify-center bg-gray-100 dark:bg-gray-700 hover:bg-[#FFE500] text-gray-600 dark:text-gray-300 hover:text-black"
+                className="w-8 h-8 ml-1 rounded-lg transition-all duration-150 cursor-pointer flex items-center justify-center bg-gray-100 dark:bg-gray-700 hover:bg-[#FFE500] text-gray-600 dark:text-gray-300 hover:text-black"
               >
                 <svg width="16" height="16" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
                   <line x1="18" y1="50" x2="74" y2="50" stroke="currentColor" strokeWidth="11" strokeLinecap="square"/>
