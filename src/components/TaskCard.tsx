@@ -326,15 +326,12 @@ export default function TaskCard({
         {/* Right-side actions: [color] [↑] [↕] [pin] [×] [→] — hidden while editing */}
         {!isEditing && (
           <div className="flex items-center gap-1 shrink-0 mt-0.5">
-            {/* Color tag dot — rainbow border when unset, solid fill when set */}
+            {/* Color tag dot — grey when unset, solid fill when set */}
             {!isDone && onColorChange && (
               <button
                 onClick={(e) => { e.stopPropagation(); onColorChange(task.id, nextColor(task.color)) }}
-                className="w-3.5 h-3.5 rounded-full cursor-pointer shrink-0 transition-opacity hover:opacity-80"
-                style={task.color
-                  ? { backgroundColor: COLOR_SOLID[task.color] ?? '#d1d5db', border: '2px solid transparent' }
-                  : { border: '2px solid transparent', background: 'linear-gradient(white, white) padding-box, conic-gradient(red, orange, yellow, green, blue, purple, red) border-box' }
-                }
+                className="w-3.5 h-3.5 rounded-full cursor-pointer shrink-0 transition-opacity hover:opacity-70"
+                style={{ backgroundColor: task.color ? (COLOR_SOLID[task.color] ?? '#d1d5db') : '#e5e7eb' }}
                 title="cycle color tag"
               />
             )}

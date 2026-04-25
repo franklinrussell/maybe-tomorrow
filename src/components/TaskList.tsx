@@ -147,18 +147,12 @@ const SOLID_COLOR: Record<string, string> = {
 }
 
 function ColorFilterButton({ color, onClick }: { color: string | null; onClick: () => void }) {
-  const solidStyle = color
-    ? { backgroundColor: SOLID_COLOR[color] ?? '#d1d5db', border: '2px solid transparent' }
-    : {
-        border: '2px solid transparent',
-        background: 'linear-gradient(white, white) padding-box, conic-gradient(red, orange, yellow, green, blue, purple, red) border-box',
-      }
   return (
     <button
       onClick={onClick}
       title="filter by color"
-      className="w-3.5 h-3.5 rounded-full cursor-pointer shrink-0 transition-opacity hover:opacity-80"
-      style={solidStyle}
+      className="w-3.5 h-3.5 rounded-full cursor-pointer shrink-0 transition-opacity hover:opacity-70 mr-1"
+      style={{ backgroundColor: color ? (SOLID_COLOR[color] ?? '#d1d5db') : '#e5e7eb' }}
     />
   )
 }
