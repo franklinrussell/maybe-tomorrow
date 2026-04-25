@@ -5,7 +5,7 @@ import { Droppable, Draggable } from '@hello-pangea/dnd'
 import { motion, useAnimation } from 'framer-motion'
 import { X } from 'lucide-react'
 import { Task, TaskState, TaskList as TaskListType } from '@/types'
-import TaskCard, { nextColor, colorDotClass } from './TaskCard'
+import TaskCard, { nextColor } from './TaskCard'
 import AddTaskInput from './AddTaskInput'
 import BlowUpButton from './BlowUpButton'
 import DoneDrawer from './DoneDrawer'
@@ -137,6 +137,32 @@ function AnimatedDraggable({
   )
 }
 
+const SOLID_COLOR: Record<string, string> = {
+  red: '#f87171',
+  orange: '#fb923c',
+  yellow: '#facc15',
+  green: '#4ade80',
+  blue: '#60a5fa',
+  purple: '#c084fc',
+}
+
+function ColorFilterButton({ color, onClick }: { color: string | null; onClick: () => void }) {
+  const solidStyle = color
+    ? { backgroundColor: SOLID_COLOR[color] ?? '#d1d5db', border: '2px solid transparent' }
+    : {
+        border: '2px solid transparent',
+        background: 'linear-gradient(white, white) padding-box, conic-gradient(red, orange, yellow, green, blue, purple, red) border-box',
+      }
+  return (
+    <button
+      onClick={onClick}
+      title="filter by color"
+      className="w-5 h-5 rounded-full cursor-pointer shrink-0 transition-opacity hover:opacity-80"
+      style={solidStyle}
+    />
+  )
+}
+
 export default function TaskList({
   list,
   tasks,
@@ -233,37 +259,31 @@ export default function TaskList({
         animate={headerControls}
         className="relative px-6 pt-6 pb-4 border-b border-gray-100 dark:border-gray-800"
       >
-        {/* Task count + filter controls — absolute so they don't affect header height */}
+        {/* Task count — absolute so it doesn't affect header height */}
         <div className="absolute top-6 right-6 flex flex-col items-end gap-1">
-          <div className="flex items-center gap-1.5">
-            <span
-              style={{
-                fontFamily: 'var(--font-jakarta, sans-serif)',
-                fontSize: '0.75rem',
-                fontWeight: 500,
-                color: '#9CA3AF',
-                fontVariantNumeric: 'lining-nums',
-              }}
-            >
-              {isFiltered
-                ? `${filteredNonDoneCount} of ${nonDoneCount} task${nonDoneCount !== 1 ? 's' : ''}`
-                : `${nonDoneCount} task${nonDoneCount !== 1 ? 's' : ''}`
-              }
-            </span>
-            {/* Color filter dot — Today column */}
-            {isToday && (
-              <button
-                onClick={() => setColorFilter(nextColor(colorFilter))}
-                className={`w-3 h-3 rounded-full border transition-colors cursor-pointer shrink-0 ${colorDotClass(colorFilter)} ${!colorFilter ? 'opacity-30 hover:opacity-60' : 'opacity-100'}`}
-                title="filter by color"
-              />
-            )}
-          </div>
+          <span
+            style={{
+              fontFamily: 'var(--font-jakarta, sans-serif)',
+              fontSize: '0.75rem',
+              fontWeight: 500,
+              color: '#9CA3AF',
+              fontVariantNumeric: 'lining-nums',
+            }}
+          >
+            {isFiltered
+              ? `${filteredNonDoneCount} of ${nonDoneCount} task${nonDoneCount !== 1 ? 's' : ''}`
+              : `${nonDoneCount} task${nonDoneCount !== 1 ? 's' : ''}`
+            }
+          </span>
           {isToday && onBlowUp && (
             <BlowUpButton onBlowUp={onBlowUp} taskCount={nonDoneCount} />
           )}
+          {isToday && (
+            /* Color filter — Today: below the blow-up button */
+            <ColorFilterButton color={colorFilter} onClick={() => setColorFilter(nextColor(colorFilter))} />
+          )}
           {!isToday && (
-            <div className="flex items-center gap-1.5">
+            <>
               <div className="relative w-36">
                 <input
                   ref={filterInputRef}
@@ -287,13 +307,9 @@ export default function TaskList({
                   </button>
                 )}
               </div>
-              {/* Color filter dot — Not Today column */}
-              <button
-                onClick={() => setColorFilter(nextColor(colorFilter))}
-                className={`w-3 h-3 rounded-full border transition-colors cursor-pointer shrink-0 ${colorDotClass(colorFilter)} ${!colorFilter ? 'opacity-30 hover:opacity-60' : 'opacity-100'}`}
-                title="filter by color"
-              />
-            </div>
+              {/* Color filter — Not Today: below the text filter */}
+              <ColorFilterButton color={colorFilter} onClick={() => setColorFilter(nextColor(colorFilter))} />
+            </>
           )}
         </div>
         <div>
