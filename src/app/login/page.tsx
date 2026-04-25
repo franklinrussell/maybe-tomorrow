@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { signIn } from 'next-auth/react'
 import Logo from '@/components/Logo'
 import { Header } from '@/components/Header'
@@ -143,6 +144,21 @@ export default function LoginPage() {
             </>
           )}
         </div>
+
+        <p
+          className="mt-4 text-center text-xs text-gray-400"
+          style={{ fontFamily: 'var(--font-jakarta, sans-serif)' }}
+        >
+          By signing in, you agree to our{' '}
+          <Link href="/terms" className="underline underline-offset-2 hover:text-gray-600 transition-colors">
+            Terms of Service
+          </Link>{' '}
+          and{' '}
+          <Link href="/privacy" className="underline underline-offset-2 hover:text-gray-600 transition-colors">
+            Privacy Policy
+          </Link>
+          .
+        </p>
 
       </div>
       </div>
