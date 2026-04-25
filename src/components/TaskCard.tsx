@@ -394,7 +394,7 @@ export default function TaskCard({
             {!isNotToday && (
               <button
                 onClick={(e) => { e.stopPropagation(); onMove(task.id) }}
-                className="w-8 h-8 rounded-lg transition-all duration-150 cursor-pointer flex items-center justify-center bg-gray-100 dark:bg-gray-700 hover:bg-[#FFE500] text-gray-600 dark:text-gray-300 hover:text-black"
+                className="w-8 h-8 ml-1 rounded-lg transition-all duration-150 cursor-pointer flex items-center justify-center bg-gray-100 dark:bg-gray-700 hover:bg-[#FFE500] text-gray-600 dark:text-gray-300 hover:text-black"
               >
                 <svg width="16" height="16" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
                   <line x1="18" y1="50" x2="74" y2="50" stroke="currentColor" strokeWidth="11" strokeLinecap="square"/>
