@@ -380,6 +380,16 @@ export default function TaskCard({
               )}
             </button>
 
+            {/* Color tag dot — after ×, before → */}
+            {onColorChange && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onColorChange(task.id, nextColor(task.color)) }}
+                className="w-3.5 h-3.5 rounded-full cursor-pointer shrink-0 transition-opacity hover:opacity-70"
+                style={{ backgroundColor: task.color ? (COLOR_SOLID[task.color] ?? '#d1d5db') : '#e5e7eb' }}
+                title="cycle color tag"
+              />
+            )}
+
             {/* Today: move to Not Today */}
             {!isNotToday && (
               <button
@@ -393,15 +403,6 @@ export default function TaskCard({
               </button>
             )}
             </>)}
-            {/* Color tag dot — rightmost, grey when unset, solid fill when set */}
-            {!isDone && onColorChange && (
-              <button
-                onClick={(e) => { e.stopPropagation(); onColorChange(task.id, nextColor(task.color)) }}
-                className="w-3.5 h-3.5 rounded-full cursor-pointer shrink-0 transition-opacity hover:opacity-70"
-                style={{ backgroundColor: task.color ? (COLOR_SOLID[task.color] ?? '#d1d5db') : '#e5e7eb' }}
-                title="cycle color tag"
-              />
-            )}
           </div>
         )}
       </div>
