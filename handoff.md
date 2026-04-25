@@ -198,7 +198,11 @@ AI-generated snarky one-liners on tasks, powered by `claude-haiku-4-5-20251001`.
 - Cache hit on same day → no API calls; toggle off → on same day restores from cache.
 - Newly created tasks get a 50/50 opportunistic commentary call immediately after POST resolves (via `addComment` returned from the hook). Result merged into state and cache.
 - Comments render in italics below the task title, only when `!isDone`.
+- Commentary prompt includes the task's list position context (e.g. "task 2 of 5 in Today") to give Claude more signal for snarky relevance.
 - To force regeneration: clear `commentary-*` keys from localStorage and reload.
+
+### Not Today filter
+An uncontrolled `<input>` (debounced 150ms) sits right-aligned in the Not Today column header. Filters by title and notes substring match. Task count shows "N of M tasks" while active; a clear (×) button appears once there's a query. Zero-match state shows "no matches" with a `min-height` so the column doesn't collapse (prevents iOS focus loss). Implemented as uncontrolled so React re-renders on keystroke don't steal focus on mobile. DnD touch handlers are blocked from capturing the input to prevent further mobile focus interference.
 
 ### Background sync
 Tasks refetch silently in two cases:
@@ -206,6 +210,8 @@ Tasks refetch silently in two cases:
 2. Every 30 seconds while the tab is visible
 
 Merge strategy: server task wins if `serverTask.updatedAt > localTask.updatedAt`; otherwise local wins (preserves optimistic updates). Local-only tasks (unconfirmed creates) are always kept. Sync is skipped during blow-up animation.
+
+Reorder safety: `moveToTop` / `moveToBottom` PATCHes increment an `inFlightCount` guard; background sync skips the merge while any reorder is in-flight and re-merges once the count reaches zero. PATCHes are serialized through a `reorderLock` promise chain so concurrent reorder requests don't race on the server.
 
 ### Mobile layout
 Below the `md` breakpoint, columns stack vertically (Today on top, Not Today below) via `max-md:` Tailwind overrides. Desktop layout is completely unchanged. Mobile cards show labeled `↑ Today` / `↓ Not Today` buttons (`md:hidden`) since drag-and-drop is desktop-only. iOS auto-zoom on input focus is prevented via a global `font-size: 16px` rule on `input, textarea` at `max-width: 768px`.
@@ -222,13 +228,22 @@ The middleware (`src/middleware.ts`) protects `/tasks/:path*` — unauthenticate
 
 ## Known rough edges
 
-- **No real concurrency protection** on onejsonfile writes. Two simultaneous requests can clobber each other. Acceptable for single-user beta.
+- **No real concurrency protection** on onejsonfile writes generally. Two simultaneous non-reorder requests can clobber each other. Acceptable for single-user beta. (Reorder requests are serialized via `reorderLock` — that specific race is handled.)
 - **In-memory rate limiting** on `/api/support` resets on server restart / cold starts. Fine for now.
 - **`DEV_USER_ID` header** in AppPage's `apiFetch` is a leftover dev shortcut. API routes use `getUserId()` which reads the real session — the header is ignored in production if `getUserId()` succeeds.
 - **AI suggest** route exists but is not wired to any UI yet.
 - **No account deletion flow** — documented in privacy policy as "contact us."
 - **Middleware deprecation warning** — Next.js 16 prefers `proxy` over `middleware` file convention. Functional but will need renaming eventually.
 - **Commentary title-match for pinned copy deletion** — if a user manually creates a non-pinned Not Today task with the same title as a pinned task, moving a Today task of that title back will delete it rather than move it. Edge case, acceptable for now.
+
+---
+
+## Testing
+
+58-test regression suite using Vitest (`src/__tests__/`). Covers task ordering, blow-up, done-drawer subtraction logic, filter matching, moveToTop/Bottom edge cases, and background-sync merge logic. Run with `npm test`. No browser/E2E tests — the suite is pure unit + integration logic.
+
+### Mobile debug overlay
+Append `?debug=1` to any URL to enable an on-screen focus-trace overlay. Logs focus/blur events with element details in a fixed panel — useful for diagnosing iOS Safari focus-stealing issues without needing remote DevTools.
 
 ---
 
