@@ -104,6 +104,11 @@ export default function TermsPage() {
             We might add features, remove features, or shut the whole thing down someday. We'll do our best to give reasonable notice if anything significant changes.
           </P>
 
+          <SectionHeader>Feedback & Suggestions</SectionHeader>
+          <P>
+            We welcome feedback and feature suggestions. Any ideas, suggestions, or feedback you submit may be used by Maybe Tomorrow to improve the product. By submitting feedback, you grant us a perpetual, irrevocable, royalty-free license to use it without obligation or compensation to you.
+          </P>
+
           <SectionHeader>Governing law</SectionHeader>
           <P>
             These terms are governed by the laws of the Commonwealth of Massachusetts.
