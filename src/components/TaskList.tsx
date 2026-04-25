@@ -5,7 +5,7 @@ import { Droppable, Draggable } from '@hello-pangea/dnd'
 import { motion, useAnimation } from 'framer-motion'
 import { X } from 'lucide-react'
 import { Task, TaskState, TaskList as TaskListType } from '@/types'
-import TaskCard from './TaskCard'
+import TaskCard, { nextColor, colorDotClass } from './TaskCard'
 import AddTaskInput from './AddTaskInput'
 import BlowUpButton from './BlowUpButton'
 import DoneDrawer from './DoneDrawer'
@@ -25,6 +25,7 @@ interface Props {
   onMoveToBottom?: (id: string) => void
   onUndo?: (id: string) => void
   onBlowUp?: () => Promise<void>
+  onColorChange?: (id: string, color: string | null) => void
   blowingUpIds?: Set<string>
   flashKey?: number
   comments?: Record<string, string>
@@ -53,6 +54,7 @@ function AnimatedDraggable({
   onEdit,
   onMoveToTop,
   onMoveToBottom,
+  onColorChange,
   isLast,
   comment,
 }: {
@@ -68,6 +70,7 @@ function AnimatedDraggable({
   onEdit?: (id: string, title: string, notes: string) => void
   onMoveToTop?: (id: string) => void
   onMoveToBottom?: (id: string) => void
+  onColorChange?: (id: string, color: string | null) => void
   isLast?: boolean
   comment?: string
 }) {
@@ -122,6 +125,7 @@ function AnimatedDraggable({
               onEdit={onEdit}
               onMoveToTop={onMoveToTop}
               onMoveToBottom={onMoveToBottom}
+              onColorChange={onColorChange}
               isLast={isLast}
               isBlowingUp={isBlowingUp}
               comment={comment}
@@ -148,11 +152,13 @@ export default function TaskList({
   onMoveToBottom,
   onUndo,
   onBlowUp,
+  onColorChange,
   blowingUpIds,
   flashKey = 0,
   comments,
 }: Props) {
   const [filter, setFilter] = useState('')  // debounced — drives task list
+  const [colorFilter, setColorFilter] = useState<string | null>(null)
   const filterInputRef = useRef<HTMLInputElement>(null)
   const filterRawRef = useRef('')
   const filterDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -177,13 +183,19 @@ export default function TaskList({
   const isToday = list === 'today'
   const nonDoneCount = tasks.filter((t) => t.state !== 'done').length
 
-  const filteredSorted = (!isToday && filter)
-    ? sorted.filter((t) => {
-        const q = filter.toLowerCase()
-        return t.title.toLowerCase().includes(q) || (t.notes?.toLowerCase().includes(q) ?? false)
-      })
-    : sorted
+  const filteredSorted = (() => {
+    let result = sorted
+    if (!isToday && filter) {
+      const q = filter.toLowerCase()
+      result = result.filter((t) => t.title.toLowerCase().includes(q) || (t.notes?.toLowerCase().includes(q) ?? false))
+    }
+    if (colorFilter) {
+      result = result.filter((t) => t.color === colorFilter)
+    }
+    return result
+  })()
   const filteredNonDoneCount = filteredSorted.filter((t) => t.state !== 'done').length
+  const isFiltered = (!isToday && !!filter) || !!colorFilter
 
   const headerControls = useAnimation()
 
@@ -221,48 +233,66 @@ export default function TaskList({
         animate={headerControls}
         className="relative px-6 pt-6 pb-4 border-b border-gray-100 dark:border-gray-800"
       >
-        {/* Task count + bomb button — absolute so they don't affect header height */}
+        {/* Task count + filter controls — absolute so they don't affect header height */}
         <div className="absolute top-6 right-6 flex flex-col items-end gap-1">
-          <span
-            style={{
-              fontFamily: 'var(--font-jakarta, sans-serif)',
-              fontSize: '0.75rem',
-              fontWeight: 500,
-              color: '#9CA3AF',
-              fontVariantNumeric: 'lining-nums',
-            }}
-          >
-            {(!isToday && filter)
-              ? `${filteredNonDoneCount} of ${nonDoneCount} task${nonDoneCount !== 1 ? 's' : ''}`
-              : `${nonDoneCount} task${nonDoneCount !== 1 ? 's' : ''}`
-            }
-          </span>
+          <div className="flex items-center gap-1.5">
+            <span
+              style={{
+                fontFamily: 'var(--font-jakarta, sans-serif)',
+                fontSize: '0.75rem',
+                fontWeight: 500,
+                color: '#9CA3AF',
+                fontVariantNumeric: 'lining-nums',
+              }}
+            >
+              {isFiltered
+                ? `${filteredNonDoneCount} of ${nonDoneCount} task${nonDoneCount !== 1 ? 's' : ''}`
+                : `${nonDoneCount} task${nonDoneCount !== 1 ? 's' : ''}`
+              }
+            </span>
+            {/* Color filter dot — Today column */}
+            {isToday && (
+              <button
+                onClick={() => setColorFilter(nextColor(colorFilter))}
+                className={`w-3 h-3 rounded-full border transition-colors cursor-pointer shrink-0 ${colorDotClass(colorFilter)} ${!colorFilter ? 'opacity-30 hover:opacity-60' : 'opacity-100'}`}
+                title="filter by color"
+              />
+            )}
+          </div>
           {isToday && onBlowUp && (
             <BlowUpButton onBlowUp={onBlowUp} taskCount={nonDoneCount} />
           )}
           {!isToday && (
-            <div className="relative w-36">
-              <input
-                ref={filterInputRef}
-                type="text"
-                defaultValue=""
-                onChange={handleFilterChange}
-                placeholder="filter..."
-                autoComplete="off"
-                autoCorrect="off"
-                autoCapitalize="off"
-                spellCheck={false}
-                className="w-full pl-2.5 pr-6 py-1 text-xs rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-gray-600 dark:text-gray-400 placeholder-gray-400 dark:placeholder-gray-600 outline-none focus:border-gray-400 dark:focus:border-gray-500 transition-colors"
-                style={{ fontFamily: 'var(--font-jakarta, sans-serif)' }}
+            <div className="flex items-center gap-1.5">
+              <div className="relative w-36">
+                <input
+                  ref={filterInputRef}
+                  type="text"
+                  defaultValue=""
+                  onChange={handleFilterChange}
+                  placeholder="filter..."
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck={false}
+                  className="w-full pl-2.5 pr-6 py-1 text-xs rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-gray-600 dark:text-gray-400 placeholder-gray-400 dark:placeholder-gray-600 outline-none focus:border-gray-400 dark:focus:border-gray-500 transition-colors"
+                  style={{ fontFamily: 'var(--font-jakarta, sans-serif)' }}
+                />
+                {filter && (
+                  <button
+                    onClick={clearFilter}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors cursor-pointer"
+                  >
+                    <X size={11} strokeWidth={2.5} />
+                  </button>
+                )}
+              </div>
+              {/* Color filter dot — Not Today column */}
+              <button
+                onClick={() => setColorFilter(nextColor(colorFilter))}
+                className={`w-3 h-3 rounded-full border transition-colors cursor-pointer shrink-0 ${colorDotClass(colorFilter)} ${!colorFilter ? 'opacity-30 hover:opacity-60' : 'opacity-100'}`}
+                title="filter by color"
               />
-              {filter && (
-                <button
-                  onClick={clearFilter}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors cursor-pointer"
-                >
-                  <X size={11} strokeWidth={2.5} />
-                </button>
-              )}
             </div>
           )}
         </div>
@@ -325,7 +355,7 @@ export default function TaskList({
               </p>
             )}
 
-            {!loading && filteredSorted.length === 0 && !isToday && filter && (
+            {!loading && filteredSorted.length === 0 && (!isToday || colorFilter) && (filter || colorFilter) && (
               <p
                 className="text-sm py-10 text-center"
                 style={{ fontFamily: 'var(--font-jakarta, sans-serif)', color: '#C4C9D4' }}
@@ -350,6 +380,7 @@ export default function TaskList({
                 onEdit={onEdit}
                 onMoveToTop={onMoveToTop}
                 onMoveToBottom={onMoveToBottom}
+                onColorChange={onColorChange}
                 comment={comments?.[task.id]}
               />
             ))}

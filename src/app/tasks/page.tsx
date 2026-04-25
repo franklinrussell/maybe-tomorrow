@@ -391,6 +391,13 @@ export default function AppPage() {
     } catch { /* optimistic only */ }
   }, [])
 
+  const handleColorChange = useCallback(async (id: string, color: string | null) => {
+    setTasks((prev) => (prev ?? []).map((t) => t.id === id ? { ...t, color, updatedAt: new Date().toISOString() } : t))
+    try {
+      await apiFetch(`/api/tasks/${id}`, { method: 'PATCH', body: JSON.stringify({ color }) })
+    } catch { /* optimistic only */ }
+  }, [])
+
   const handleBlowUp = useCallback(async () => {
     const toBlowUp = sortTasks(
       (tasks ?? []).filter((t) => t.list === 'today' && t.state !== 'done')
@@ -473,6 +480,7 @@ export default function AppPage() {
               onMoveToTop={handleMoveToTop}
               onUndo={handleUndo}
               onBlowUp={handleBlowUp}
+              onColorChange={handleColorChange}
               blowingUpIds={blowingUpIds}
               comments={comments}
             />
@@ -491,6 +499,7 @@ export default function AppPage() {
               onEdit={handleEdit}
               onMoveToTop={handleMoveToTop}
               onMoveToBottom={handleMoveToBottom}
+              onColorChange={handleColorChange}
               flashKey={notTodayFlashKey}
               comments={comments}
             />

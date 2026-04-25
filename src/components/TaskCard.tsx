@@ -5,6 +5,28 @@ import { ArrowLeft, ArrowUpToLine, ArrowDownToLine, X, Pin, PinOff } from 'lucid
 import { Task, TaskState } from '@/types'
 import StateToggle from './StateToggle'
 
+const COLOR_CYCLE = ['red', 'orange', 'yellow', 'green', 'blue', 'purple'] as const
+const COLOR_BG: Record<string, string> = {
+  red: 'bg-red-400 border-red-400',
+  orange: 'bg-orange-400 border-orange-400',
+  yellow: 'bg-yellow-400 border-yellow-400',
+  green: 'bg-green-400 border-green-400',
+  blue: 'bg-blue-400 border-blue-400',
+  purple: 'bg-purple-400 border-purple-400',
+}
+
+export function nextColor(current: string | null | undefined): string | null {
+  if (!current) return 'red'
+  const idx = COLOR_CYCLE.indexOf(current as typeof COLOR_CYCLE[number])
+  if (idx === -1 || idx === COLOR_CYCLE.length - 1) return null
+  return COLOR_CYCLE[idx + 1]
+}
+
+export function colorDotClass(color: string | null | undefined): string {
+  if (!color) return 'bg-transparent border-gray-300 dark:border-gray-600'
+  return COLOR_BG[color] ?? 'bg-transparent border-gray-300 dark:border-gray-600'
+}
+
 interface Props {
   task: Task
   onStateChange: (id: string, state: TaskState) => void
@@ -14,6 +36,7 @@ interface Props {
   onEdit?: (id: string, title: string, notes: string) => void
   onMoveToTop?: (id: string) => void
   onMoveToBottom?: (id: string) => void
+  onColorChange?: (id: string, color: string | null) => void
   isFirst?: boolean
   isLast?: boolean
   isBlowingUp?: boolean
@@ -47,11 +70,12 @@ export default function TaskCard({
   onPin,
   onEdit,
   onMoveToTop,
+  onMoveToBottom,
+  onColorChange,
   isFirst = false,
   isLast = false,
   isBlowingUp = false,
   comment,
-  onMoveToBottom,
 }: Props) {
   const isDone = task.state === 'done'
   const isNotToday = task.list === 'not_today'
@@ -294,9 +318,17 @@ export default function TaskCard({
           )}
         </div>
 
-        {/* Right-side actions: [pin] [×] [💣→] — hidden for done tasks or while editing */}
+        {/* Right-side actions: [color] [↑] [↕] [pin] [×] [→] — hidden while editing */}
         {!isEditing && (
           <div className="flex items-center gap-1 shrink-0 mt-0.5">
+            {/* Color tag dot — faint ring when unset, filled when set */}
+            {!isDone && onColorChange && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onColorChange(task.id, nextColor(task.color)) }}
+                className={`w-3.5 h-3.5 rounded-full border transition-colors cursor-pointer shrink-0 ${colorDotClass(task.color)} ${!task.color ? 'opacity-25 group-hover:opacity-50' : 'opacity-100'}`}
+                title="cycle color tag"
+              />
+            )}
             {isDone ? null : (<>
             {/* Move to top — hidden when already first */}
             {!isFirst && onMoveToTop && (

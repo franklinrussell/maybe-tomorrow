@@ -20,6 +20,7 @@ export interface Task {
   order: number
   blownUpCount: number
   pinned?: boolean
+  color?: string | null
   createdAt: string
   updatedAt: string
   completedAt?: string
