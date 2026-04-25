@@ -323,18 +323,9 @@ export default function TaskCard({
           )}
         </div>
 
-        {/* Right-side actions: [color] [↑] [↕] [pin] [×] [→] — hidden while editing */}
+        {/* Right-side actions: [↑] [↕] [pin] [×] [→] [color] — hidden while editing */}
         {!isEditing && (
           <div className="flex items-center gap-1 shrink-0 mt-0.5">
-            {/* Color tag dot — grey when unset, solid fill when set */}
-            {!isDone && onColorChange && (
-              <button
-                onClick={(e) => { e.stopPropagation(); onColorChange(task.id, nextColor(task.color)) }}
-                className="w-3.5 h-3.5 rounded-full cursor-pointer shrink-0 transition-opacity hover:opacity-70"
-                style={{ backgroundColor: task.color ? (COLOR_SOLID[task.color] ?? '#d1d5db') : '#e5e7eb' }}
-                title="cycle color tag"
-              />
-            )}
             {isDone ? null : (<>
             {/* Move to top — hidden when already first */}
             {!isFirst && onMoveToTop && (
@@ -402,6 +393,15 @@ export default function TaskCard({
               </button>
             )}
             </>)}
+            {/* Color tag dot — rightmost, grey when unset, solid fill when set */}
+            {!isDone && onColorChange && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onColorChange(task.id, nextColor(task.color)) }}
+                className="w-3.5 h-3.5 rounded-full cursor-pointer shrink-0 transition-opacity hover:opacity-70"
+                style={{ backgroundColor: task.color ? (COLOR_SOLID[task.color] ?? '#d1d5db') : '#e5e7eb' }}
+                title="cycle color tag"
+              />
+            )}
           </div>
         )}
       </div>
